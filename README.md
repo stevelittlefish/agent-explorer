@@ -4,15 +4,61 @@ A small, read-only web browser and exporter for local Codex, Claude Code, and pi
 Go standard library, server-rendered HTML, CSS, and a little plain JavaScript. No
 external dependencies, database, frontend build step, or API keys.
 
-## Run
+## What does it do?
 
-Requires Go 1.23 or newer.
+Agent Explorer turns the chat logs already on your disk into a readable local
+website. Choose **an agent → a project → a conversation**, revisit the work, and
+export a chat to keep or share. It reads your files without modifying them or
+sending them to a service.
+
+- Supports **Codex, Claude Code, and pi**; missing agent folders stay out of the UI.
+- Groups consecutive tool calls behind one expandable line.
+- Uses a compact dark interface: blue for you, green for the agent.
+- Exports standalone **HTML**, readable **text**, or untouched **JSONL**.
+- Runs as one executable with templates and assets embedded. No Node, npm,
+  database, API keys, or frontend build ceremony.
+
+## Download and run
+
+Linux and Windows **x64 / amd64** builds are produced by
+[the Build workflow](https://github.com/stevelittlefish/agent-explorer/actions/workflows/build.yml).
+Open a successful run for `main` and download the matching item under **Artifacts**
+(GitHub sign-in required). Extract the artifact download, then unpack the enclosed
+`.tar.gz` or `.zip`. Each package contains the executable, this README, the license,
+and `SHA256SUMS` for checking the executable.
+
+**Linux:**
+
+```sh
+tar -xzf agent-explorer-linux-amd64.tar.gz
+./agent-explorer
+```
+
+**Windows (PowerShell):**
+
+```powershell
+Expand-Archive .\agent-explorer-windows-amd64.zip -DestinationPath .\agent-explorer
+cd .\agent-explorer
+.\agent-explorer.exe
+```
+
+Open **http://127.0.0.1:8080**. Keep the terminal open while browsing; press `Ctrl+C`
+to stop the server. Use `-addr 127.0.0.1:8087` if port 8080 is occupied.
+
+**Apple builds? No.** We are not volunteering for signed-executable bureaucracy,
+notarisation rituals, or a guided tour of somebody else's walled garden.
+**Steve Jobs, we just want to run a binary, not apply for planning permission
+inside your fruit-shaped kingdom.** Linux and Windows get the automated builds.
+Mac users are welcome to try building from source; bring your own ceremonial turtleneck.
+
+## Run from source
+
+Requires Go 1.23 or newer:
 
 ```sh
 go run .
 ```
 
-Open **http://127.0.0.1:8080**. Choose an agent, then a project folder, then a chat.
 Each screen has its own URL and works without JavaScript. JavaScript adds list
 filtering, code copying, and an expand/collapse button for conversation details.
 
@@ -84,3 +130,12 @@ go build -o agent-explorer .
 ```
 
 Templates and static assets are embedded in the binary. Rebuild after changing them.
+
+## Continuous integration
+
+Pushes to `main`, pull requests targeting `main`, and manual workflow runs trigger
+native Linux and Windows jobs. Each job runs race-enabled tests and `go vet`,
+builds an amd64 executable with CGO disabled, checks that it starts with `-help`,
+and uploads a package. CI uses the latest stable Go release. Build artifacts are
+kept for 30 days; these are workflow downloads, not automatically published GitHub
+Releases. No macOS job sneaks in through the garden gate, Steve Jobs.

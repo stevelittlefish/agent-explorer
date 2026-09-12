@@ -1,0 +1,93 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.target }} / amd64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: linux
+            binary: agent-explorer
+          - runner: windows-latest
+            target: windows
+            binary: agent-explorer.exe
+    defaults:
+      run:
+        shell: bash
+    env:
+      TARGET_OS: ${{ matrix.target }}
+      BINARY_NAME: ${{ matrix.binary }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache: false
+
+      - name: Test
+        run: go test -race ./...
+      - name: Vet
+        run: go vet ./...
+      - name: Build standalone executable
+        env:
+          CGO_ENABLED: '0'
+          GOOS: ${{ matrix.target }}
+          GOARCH: amd64
+        run: go build -trimpath -ldflags="-s -w" -o "dist/$BINARY_NAME" .
+      - name: Smoke test executable
+        run: |
+          "./dist/$BINARY_NAME" -help
+      - name: Package executable, documentation, and checksum
+        run: |
+          python - <<'PY'
+          import hashlib
+          import os
+          from pathlib import Path
+          import tarfile
+          import zipfile
+
+          target = os.environ['TARGET_OS']
+          binary = Path('dist') / os.environ['BINARY_NAME']
+          checksum = Path('dist/SHA256SUMS')
+          checksum.write_text(f'{hashlib.sha256(binary.read_bytes()).hexdigest()}  {binary.name}\n', encoding='utf-8')
+          files = [binary, Path('README.md'), Path('LICENSE'), checksum]
+          name = f'agent-explorer-{target}-amd64'
+          if target == 'linux':
+              with tarfile.open(f'dist/{name}.tar.gz', 'w:gz') as archive:
+                  for path in files:
+                      archive.add(path, arcname=path.name)
+          else:
+              with zipfile.ZipFile(f'dist/{name}.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
+                  for path in files:
+                      archive.write(path, arcname=path.name)
+          PY
+      - name: Upload download
+        uses: actions/upload-artifact@v7
+        with:
+          name: agent-explorer-${{ matrix.target }}-amd64
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
+          if-no-files-found: error
+          retention-days: 30
