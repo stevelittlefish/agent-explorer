@@ -58,7 +58,7 @@ func main() {
 	if piDefault == "" {
 		piDefault = filepath.Join(home, ".pi", "agent")
 	}
-	addr := flag.String("addr", "127.0.0.1:8080", "HTTP listen address")
+	addr := flag.String("addr", "127.0.0.1:8484", "HTTP listen address")
 	codex := flag.String("codex-dir", codexDefault, "Codex data directory")
 	claude := flag.String("claude-dir", claudeDefault, "Claude Code data directory")
 	pi := flag.String("pi-dir", piDefault, "pi agent data directory")

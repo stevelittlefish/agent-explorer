@@ -43,8 +43,8 @@ cd .\agent-explorer
 .\agent-explorer.exe
 ```
 
-Open **http://127.0.0.1:8080**. Keep the terminal open while browsing; press `Ctrl+C`
-to stop the server. Use `-addr 127.0.0.1:8087` if port 8080 is occupied.
+Open **http://127.0.0.1:8484**. Keep the terminal open while browsing; press `Ctrl+C`
+to stop the server. Use `-addr 127.0.0.1:8087` if port 8484 is occupied.
 
 **Apple builds? No.** We are not volunteering for signed-executable bureaucracy,
 notarisation rituals, or a guided tour of somebody else's walled garden.
@@ -83,7 +83,7 @@ agent data directories.
 You can also specify them explicitly:
 
 ```sh
-go run . -addr 127.0.0.1:8080 -codex-dir /path/to/.codex -claude-dir /path/to/.claude -pi-dir /path/to/.pi/agent
+go run . -addr 127.0.0.1:8484 -codex-dir /path/to/.codex -claude-dir /path/to/.claude -pi-dir /path/to/.pi/agent
 ```
 
 The server binds to loopback by default. It has no authentication; use it locally.
