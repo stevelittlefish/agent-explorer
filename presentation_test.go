@@ -26,3 +26,43 @@ func TestTextBlocks(t *testing.T) {
 		})
 	}
 }
+
+func TestConversationRows(t *testing.T) {
+	messages := []Message{
+		{Role: "user", Text: "Question"},
+		{Role: "tool", Text: "call 1", Detail: true},
+		{Role: "tool", Text: "result 1", Detail: true, ToolResult: true},
+		{Role: "tool", Text: "call 2", Detail: true},
+		{Role: "tool", Text: "result 2", Detail: true, ToolResult: true},
+		{Role: "reasoning", Text: "Reasoning separates runs", Detail: true},
+		{Role: "tool", Text: "orphan result", Detail: true, ToolResult: true},
+		{Role: "assistant", Text: "Answer"},
+		{Role: "tool", Text: "call 3", Detail: true},
+	}
+	rows := conversationRows(messages)
+	if len(rows) != 6 {
+		t.Fatalf("got %d rows", len(rows))
+	}
+	if rows[1].Label != "2 tool calls" || len(rows[1].Tools) != 4 {
+		t.Fatalf("bad group: %+v", rows[1])
+	}
+	if rows[3].Label != "1 tool result" || rows[5].Label != "1 tool call" {
+		t.Fatal("incorrect singular or result-only label")
+	}
+	var flattened []Message
+	for _, row := range rows {
+		if row.Tools != nil {
+			flattened = append(flattened, row.Tools...)
+		} else {
+			flattened = append(flattened, row.Message)
+		}
+	}
+	for i, m := range messages {
+		if flattened[i] != m {
+			t.Fatalf("message %d changed order or content", i)
+		}
+	}
+	if len(conversationRows(nil)) != 0 {
+		t.Fatal("empty conversation has rows")
+	}
+}

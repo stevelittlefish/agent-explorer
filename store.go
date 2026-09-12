@@ -19,6 +19,7 @@ import (
 type Message struct {
 	Role, Text, Time string
 	Detail           bool
+	ToolResult       bool
 }
 type Chat struct {
 	ID, ProjectID, Project, Title, Path string
@@ -122,7 +123,11 @@ func readChat(path, agent string, full bool) (Chat, error) {
 			titleFound = true
 		}
 		if full {
-			c.Messages = append(c.Messages, Message{role, text, stamp, detail})
+			isResult := role == "tool_result"
+			if isResult {
+				role = "tool"
+			}
+			c.Messages = append(c.Messages, Message{Role: role, Text: text, Time: stamp, Detail: detail, ToolResult: isResult})
 		}
 	}
 	for {
@@ -149,7 +154,7 @@ func readChat(path, agent string, full bool) (Chat, error) {
 							role = "assistant"
 						}
 						if role != "" {
-							events = append(events, Message{role, str(p, "message"), stamp, false})
+							events = append(events, Message{Role: role, Text: str(p, "message"), Time: stamp})
 						}
 					case "response_item":
 						switch str(p, "type") {
@@ -166,7 +171,7 @@ func readChat(path, agent string, full bool) (Chat, error) {
 							}
 							add("tool", str(p, "name")+"\n"+pretty(v), stamp, true)
 						case "function_call_output", "custom_tool_call_output":
-							add("tool", pretty(p["output"]), stamp, true)
+							add("tool_result", pretty(p["output"]), stamp, true)
 						case "reasoning":
 							readContent(p["summary"], "reasoning", stamp, add)
 						}
@@ -250,7 +255,7 @@ func readContent(v any, role, stamp string, add func(string, string, string, boo
 			add("tool", str(m, "name")+"\n"+pretty(m["input"]), stamp, true)
 		case "tool_result":
 			flush()
-			add("tool", contentText(m["content"]), stamp, true)
+			add("tool_result", contentText(m["content"]), stamp, true)
 		case "image", "input_image":
 			texts = append(texts, "[Image attachment — available in the original JSONL]")
 		default:

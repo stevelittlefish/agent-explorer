@@ -17,7 +17,11 @@ Each screen has its own URL and works without JavaScript. JavaScript adds list
 filtering, code copying, and an expand/collapse button for conversation details.
 
 The Phosphor interface uses a dark forest palette, green accents, and a project
-chat index beside the conversation. On narrow screens the index folds into a
+chat index beside the conversation. Compact message spacing keeps more of the
+conversation in view: your messages are green and agent replies are blue.
+Consecutive tool calls and their results fold into a single expandable count
+(e.g. "4 tool calls"); outputs do not count as additional calls. The grouping also
+works in standalone HTML exports and with JavaScript disabled. On narrow screens the index folds into a
 disclosure above the chat. Keyboard navigation and reduced-motion preferences
 are supported.
 
@@ -47,7 +51,7 @@ Each conversation offers:
 - **Text:** the readable transcript, including tool calls and reasoning.
 - **Original JSONL:** the source transcript, unchanged, including original metadata.
 
-Message text and whitespace are preserved, with fenced code shown in separate
+Message text and internal whitespace are preserved, with fenced code shown in separate
 code blocks. Other Markdown remains readable source text.
 Images appear as attachment placeholders; original attachment records remain in
 JSONL exports. Provider bookkeeping records and encrypted reasoning are omitted

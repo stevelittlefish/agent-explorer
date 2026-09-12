@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"time"
 )
@@ -55,3 +56,39 @@ func displayStamp(value string) string {
 	}
 	return value
 }
+
+// conversationRows groups only adjacent tool records, preserving transcript order.
+// Results stay with their calls but do not inflate the call count.
+type conversationRow struct {
+	Message
+	Tools []Message
+	Label string
+}
+
+func conversationRows(messages []Message) []conversationRow {
+	var rows []conversationRow
+	for i := 0; i < len(messages); {
+		if messages[i].Role != "tool" {
+			rows = append(rows, conversationRow{Message: messages[i]})
+			i++
+			continue
+		}
+		start, calls := i, 0
+		for i < len(messages) && messages[i].Role == "tool" {
+			if !messages[i].ToolResult {
+				calls++
+			}
+			i++
+		}
+		count, noun := calls, "tool call"
+		if calls == 0 {
+			count, noun = i-start, "tool result"
+		}
+		if count != 1 {
+			noun += "s"
+		}
+		rows = append(rows, conversationRow{Tools: messages[start:i], Label: fmt.Sprintf("%d %s", count, noun)})
+	}
+	return rows
+}
+func proseText(text string) string { return strings.Trim(text, "\r\n") }

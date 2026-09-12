@@ -93,3 +93,28 @@ func TestStoreRefreshAndSymlink(t *testing.T) {
 		t.Fatal(c, err)
 	}
 }
+
+func TestToolCountsForBothAgents(t *testing.T) {
+	for _, agent := range []string{"codex", "claude"} {
+		t.Run(agent, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "tools.jsonl")
+			var records []any
+			for i := 0; i < 4; i++ {
+				if agent == "codex" {
+					records = append(records, map[string]any{"type": "response_item", "payload": map[string]any{"type": "function_call", "name": "Read", "arguments": "file"}}, map[string]any{"type": "response_item", "payload": map[string]any{"type": "function_call_output", "output": "contents"}})
+				} else {
+					records = append(records, map[string]any{"type": "assistant", "message": map[string]any{"content": []any{map[string]any{"type": "tool_use", "name": "Read", "input": "file"}}}}, map[string]any{"type": "user", "message": map[string]any{"content": []any{map[string]any{"type": "tool_result", "content": "contents"}}}})
+				}
+			}
+			writeRecords(t, path, records...)
+			chat, err := readChat(path, agent, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			rows := conversationRows(chat.Messages)
+			if len(rows) != 1 || rows[0].Label != "4 tool calls" || len(rows[0].Tools) != 8 {
+				t.Fatalf("incorrect calls/results: %+v", rows)
+			}
+		})
+	}
+}
