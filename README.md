@@ -21,11 +21,12 @@ sending them to a service.
 ## Download and run
 
 Linux and Windows **x64 / amd64** builds are produced by
-[the Build workflow](https://github.com/stevelittlefish/agent-explorer/actions/workflows/build.yml).
-Open a successful run for `main` and download the matching item under **Artifacts**
-(GitHub sign-in required). Extract the artifact download, then unpack the enclosed
-`.tar.gz` or `.zip`. Each package contains the executable, this README, the license,
-and `SHA256SUMS` for checking the executable.
+[the Build workflow](https://github.com/stevelittlefish/agent-explorer/actions/workflows/build.yml),
+which runs when a release is published. Open the run for the latest release and
+download the matching item under **Artifacts** (GitHub sign-in required). Extract
+the artifact download, then unpack the enclosed `.tar.gz` or `.zip`. Each package
+contains the executable, this README, the license, and `SHA256SUMS` for checking
+the executable.
 
 **Linux:**
 
@@ -131,11 +132,24 @@ go build -o agent-explorer .
 
 Templates and static assets are embedded in the binary. Rebuild after changing them.
 
-## Continuous integration
+## Releasing
 
-Pushes to `main`, pull requests targeting `main`, and manual workflow runs trigger
-native Linux and Windows jobs. Each job runs race-enabled tests and `go vet`,
-builds an amd64 executable with CGO disabled, checks that it starts with `-help`,
-and uploads a package. CI uses the latest stable Go release. Build artifacts are
-kept for 30 days; these are workflow downloads, not automatically published GitHub
-Releases. No macOS job sneaks in through the garden gate, Steve Jobs.
+The Build workflow runs only when a GitHub Release is published (or when triggered
+by hand from the Actions tab). To cut a release:
+
+1. On GitHub, open **Releases** (right sidebar of the repo) and choose
+   **Draft a new release**.
+2. Under **Choose a tag**, type a new version tag such as `v1.0.0` and select
+   **Create new tag on publish**. Target the `main` branch.
+3. Add a title and notes, then choose **Publish release**.
+
+Publishing fires the Build workflow. It runs native Linux and Windows jobs: each
+runs race-enabled tests and `go vet`, builds an amd64 executable with CGO disabled,
+checks that it starts with `-help`, and uploads a package. CI uses the latest stable
+Go release. Build artifacts are attached to the workflow run and kept for 30 days;
+they are workflow downloads, not files attached to the Release itself. No macOS job
+sneaks in through the garden gate, Steve Jobs.
+
+To test the workflow without publishing a release, open the
+[Build workflow](https://github.com/stevelittlefish/agent-explorer/actions/workflows/build.yml)
+on the Actions tab and use **Run workflow**.
