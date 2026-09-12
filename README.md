@@ -14,7 +14,12 @@ go run .
 
 Open **http://127.0.0.1:8080**. Choose an agent, then a project folder, then a chat.
 Each screen has its own URL and works without JavaScript. JavaScript adds list
-filtering and an expand/collapse button for conversation details.
+filtering, code copying, and an expand/collapse button for conversation details.
+
+The Phosphor interface uses a dark forest palette, green accents, and a project
+chat index beside the conversation. On narrow screens the index folds into a
+disclosure above the chat. Keyboard navigation and reduced-motion preferences
+are supported.
 
 Default data locations:
 
@@ -42,7 +47,8 @@ Each conversation offers:
 - **Text:** the readable transcript, including tool calls and reasoning.
 - **Original JSONL:** the source transcript, unchanged, including original metadata.
 
-Message formatting is preserved as plain text, including Markdown source and code.
+Message text and whitespace are preserved, with fenced code shown in separate
+code blocks. Other Markdown remains readable source text.
 Images appear as attachment placeholders; original attachment records remain in
 JSONL exports. Provider bookkeeping records and encrypted reasoning are omitted
 from readable views. Malformed records are skipped with a warning. Codex response

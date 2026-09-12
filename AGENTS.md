@@ -3,6 +3,8 @@
 - Use Go for the backend, server-rendered HTML templates, and plain JavaScript.
   Prefer the standard library; treat external dependencies as expensive.
 - Keep the app simple, with a unique URL for each page. No SPA or frontend framework.
+- Use the Phosphor design: dark forest backgrounds, restrained green accents,
+  clear typography, and simple interactions. Keep the UI dark; clarity comes first.
 - Always "rawdog commit" directly to `main`; do not create feature branches or PRs.
 - Every time you commit, first declare exactly: "Rawdog committing to main".
 - Commit only actual project changes, including useful permanent tests and

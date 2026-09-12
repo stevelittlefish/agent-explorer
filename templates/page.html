@@ -1,22 +1,56 @@
 {{define "page"}}<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{.Title}} · Agent Explorer</title>
-{{if .Export}}<style>{{.CSS}}</style>{{else}}<link rel="stylesheet" href="/static/style.css"><script src="/static/app.js" defer></script>{{end}}</head>
-<body><header>{{if .Export}}<strong>Agent Explorer</strong>{{else}}<a class="brand" href="/">Agent Explorer</a>{{end}}<span>Local chat browser</span></header><main>
-{{if not .Export}}<nav aria-label="Breadcrumb"><a href="/">Agents</a>{{if .Agent}} / <a href="/{{.Agent}}">{{.AgentName}}</a>{{end}}{{if .Project}} / <a href="/{{.Agent}}/projects/{{.ProjectID}}">{{.Project}}</a>{{end}}{{if .Chat}} / Chat{{end}}</nav>{{end}}
-{{if .Chat}}
-<h1>{{.Chat.Title}}</h1><p class="muted">{{.AgentName}} · {{.Project}} · Updated {{date .Chat.Updated}}</p>
-{{if not .Export}}<div class="actions"><span>Export:</span><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=html">HTML</a><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=txt">Text</a><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=jsonl">Original JSONL</a><button type="button" id="details-toggle" hidden>Expand details</button></div>{{end}}
-{{if .Chat.Warnings}}<p class="notice">{{.Chat.Warnings}} unreadable record(s) skipped. The original JSONL export preserves the source file.</p>{{end}}
-<div class="conversation">{{range .Chat.Messages}}<article class="message {{.Role}}">{{if .Detail}}<details><summary>{{.Role}} <time>{{.Time}}</time></summary><pre>{{.Text}}</pre></details>{{else}}<div class="message-heading"><strong>{{.Role}}</strong><time>{{.Time}}</time></div><pre>{{.Text}}</pre>{{end}}</article>{{else}}<p class="empty">No readable messages in this chat.</p>{{end}}</div>
-{{else if .Project}}
-<h1>{{.Project}}</h1><p class="muted">{{len .Chats}} chats · Most recently updated first</p>
-<label class="filter" hidden>Filter chats <input type="search" placeholder="Type a chat title…" data-filter></label>
-<ul class="listing">{{range .Chats}}<li data-item><a href="/{{$.Agent}}/projects/{{$.ProjectID}}/chats/{{.ID}}"><strong>{{.Title}}</strong><span>{{date .Updated}}</span></a></li>{{end}}</ul><p id="no-results" hidden>No matches.</p>
-{{else if .Agent}}
-<h1>{{.AgentName}}</h1><p class="muted">Choose a project folder.</p>
-{{if .Projects}}<label class="filter" hidden>Filter projects <input type="search" placeholder="Type a project path…" data-filter></label><ul class="listing">{{range .Projects}}<li data-item><a href="/{{$.Agent}}/projects/{{.ID}}"><strong>{{.Name}}</strong><span>{{.Count}} chats · {{date .Updated}}</span></a></li>{{end}}</ul><p id="no-results" hidden>No matches.</p>{{else}}<p class="empty">No chats found. Start a chat in {{.AgentName}}, or set its data directory when starting this server.</p>{{end}}
-{{else}}
-<h1>Your agent chats</h1><p class="muted">Choose an agent to browse projects, read conversations, and export chats.</p>
-<ul class="listing agents"><li><a href="/codex"><strong>Codex</strong><span>Browse projects →</span></a></li><li><a href="/claude"><strong>Claude Code</strong><span>Browse projects →</span></a></li></ul>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark">
+<title>{{.Title}} · Agent Explorer</title>
+{{if .Export}}<style>{{.CSS}}</style>{{else}}<link rel="stylesheet" href="/static/style.css"><script src="/static/app.js" defer></script>{{end}}
+</head>
+<body class="{{if .Export}}export{{end}}">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="masthead">
+{{if .Export}}<span class="brand"><span class="brand-mark" aria-hidden="true"></span>Agent Explorer</span>{{else}}<a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>Agent Explorer</a>
+<nav class="agent-nav" aria-label="Agents"><a href="/codex" {{if eq .Agent "codex"}}aria-current="true"{{end}}>Codex</a><a href="/claude" {{if eq .Agent "claude"}}aria-current="true"{{end}}>Claude Code</a></nav>{{end}}
+<span class="edition">Local archive</span>
+</header>
+{{if not .Export}}<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/">Agents</a>{{if .Agent}}<span aria-hidden="true">/</span><a href="/{{.Agent}}">{{.AgentName}}</a>{{end}}{{if .Project}}<span aria-hidden="true">/</span><a href="/{{.Agent}}/projects/{{.ProjectID}}" title="{{.Project}}">{{base .Project}}</a>{{end}}{{if .Chat}}<span aria-hidden="true">/</span><span aria-current="page">{{.Chat.Title}}</span>{{end}}</nav>{{end}}
+<div class="layout {{if and .Chat (not .Export)}}with-index{{end}}">
+{{if and .Chat (not .Export)}}
+<aside class="chat-index" aria-label="Project chats">
+<details class="index-disclosure" open>
+<summary>Chats <span class="muted">/ {{base .Project}}</span><span class="index-chevron" aria-hidden="true">⌄</span></summary>
+<div class="index-content">
+<label class="filter" hidden><span class="sr-only">Filter chats</span><input type="search" placeholder="Search conversations…" data-filter></label>
+<ol class="chat-links">{{range .Chats}}<li data-item><a href="/{{$.Agent}}/projects/{{$.ProjectID}}/chats/{{.ID}}" {{if eq .ID $.Chat.ID}}aria-current="page"{{end}} title="{{.Title}}">{{.Title}}</a></li>{{end}}</ol>
+<p class="no-results" id="no-results" role="status" hidden>No matching conversations.</p>
+<a class="back-link" href="/{{.Agent}}/projects/{{.ProjectID}}">← All chats in this project</a>
+<a class="back-link" href="/{{.Agent}}">← All projects</a>
+</div>
+</details>
+</aside>
 {{end}}
-</main><footer>Agent Explorer · Local files, read only.</footer></body></html>{{end}}
+<main id="content" class="{{if .Chat}}reader{{else}}browse{{end}}">
+{{if .Chat}}
+<div class="page-heading"><div><h1>{{.Chat.Title}}</h1><p class="metadata"><span title="{{.Project}}">{{.Project}}</span><span>{{.AgentName}} · {{date .Chat.Updated}}</span></p></div>
+{{if not .Export}}<nav class="exports" aria-label="Export conversation"><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=html" aria-label="Export HTML">HTML <span aria-hidden="true">↓</span></a><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=txt" aria-label="Export text">TXT <span aria-hidden="true">↓</span></a><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=jsonl" aria-label="Export original JSONL">JSONL <span aria-hidden="true">↓</span></a></nav>{{end}}</div>
+{{if .Chat.Warnings}}<p class="notice">{{.Chat.Warnings}} unreadable record(s) skipped. The original JSONL export preserves the source file.</p>{{end}}
+{{if not .Export}}<div class="reader-tools"><span>{{len .Chat.Messages}} entries</span><button type="button" id="details-toggle" hidden>Expand details</button><a href="#conversation-end">Jump to end ↓</a></div>{{end}}
+<div class="conversation">{{range .Chat.Messages}}
+{{if .Detail}}<article class="message detail-message"><details class="transcript-detail"><summary><span>{{if eq .Role "tool"}}Tool call / result{{else}}{{.Role}}{{end}}</span>{{if .Time}}<time datetime="{{.Time}}">{{stamp .Time}}</time>{{end}}</summary><pre>{{.Text}}</pre></details></article>
+{{else}}<article class="message {{.Role}}"><div class="speaker">{{if eq .Role "user"}}You{{else}}{{$.AgentName}}{{end}}</div><div class="message-body">{{range blocks .Text}}{{if .Code}}<div class="code-block"><div class="code-heading"><span>{{if .Language}}{{.Language}}{{else}}Code{{end}}</span>{{if not $.Export}}<button type="button" data-copy hidden aria-label="Copy code">Copy</button>{{end}}</div><pre><code>{{.Text}}</code></pre></div>{{else}}<div class="prose">{{.Text}}</div>{{end}}{{end}}{{if .Time}}<time class="message-time" datetime="{{.Time}}">{{stamp .Time}}</time>{{end}}</div></article>{{end}}
+{{else}}<p class="empty">No readable messages in this chat.</p>{{end}}
+</div><div id="conversation-end" class="conversation-end"><span>End of conversation</span>{{if not .Export}}<a href="#content">Back to top ↑</a>{{end}}</div>
+{{else if .Project}}
+<p class="eyebrow">{{.AgentName}} / Conversations</p><h1>{{base .Project}}</h1><p class="metadata">{{.Project}}</p><p class="muted">{{len .Chats}} chats · Most recently updated first</p>
+<label class="filter" hidden><span class="sr-only">Filter chats</span><input type="search" placeholder="Search conversations…" data-filter></label>
+<ol class="listing">{{range .Chats}}<li data-item><a href="/{{$.Agent}}/projects/{{$.ProjectID}}/chats/{{.ID}}"><div><strong>{{.Title}}</strong><span>{{date .Updated}}</span></div><span class="row-arrow" aria-hidden="true">↗</span></a></li>{{end}}</ol><p id="no-results" role="status" hidden>No matching conversations.</p>
+{{else if .Agent}}
+<p class="eyebrow">{{.AgentName}} / Projects</p><h1>A place for every project.</h1><p class="muted">Choose a folder to explore its conversations.</p>
+{{if .Projects}}<label class="filter" hidden><span class="sr-only">Filter projects</span><input type="search" placeholder="Search project folders…" data-filter></label><ol class="listing">{{range .Projects}}<li data-item><a href="/{{$.Agent}}/projects/{{.ID}}"><div><strong>{{base .Name}}</strong><span>{{.Name}}</span><span>{{.Count}} chats · {{date .Updated}}</span></div><span class="row-arrow" aria-hidden="true">↗</span></a></li>{{end}}</ol><p id="no-results" role="status" hidden>No matching projects.</p>{{else}}<p class="empty">No chats found. Start a chat in {{.AgentName}}, or set its data directory when starting this server.</p>{{end}}
+{{else}}
+<p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> Your local archive</p><h1>Good conversations.<br>Worth keeping.</h1><p class="intro">Find the thought, follow the thread, take it with you.<br>Browse and export your agent chats.</p>
+<div class="agent-cards"><a class="agent-card" href="/codex"><span class="card-number">01 / AGENT</span><span class="agent-symbol" aria-hidden="true">&gt;_</span><h2>Codex</h2><p>Projects, conversations,<br>and everything along the way.</p><span class="card-action">Browse projects <span aria-hidden="true">↗</span></span></a><a class="agent-card" href="/claude"><span class="card-number">02 / AGENT</span><span class="agent-symbol" aria-hidden="true">✳</span><h2>Claude Code</h2><p>Your work, your words.<br>All in one quiet place.</p><span class="card-action">Browse projects <span aria-hidden="true">↗</span></span></a></div>
+<p class="archive-note">Read a chat. Export HTML, text, or the original JSONL.</p>
+{{end}}
+</main></div>
+<footer><span><span class="status-dot" aria-hidden="true"></span> Local files · Read only</span><span>Agent Explorer / Phosphor</span></footer>
+</body></html>{{end}}

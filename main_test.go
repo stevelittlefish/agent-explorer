@@ -11,7 +11,7 @@ import (
 func TestNavigationAndExports(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "claude", "projects", "encoded-project", "chat.jsonl")
-	writeRecords(t, path, map[string]any{"type": "user", "cwd": "/work/<project>", "message": map[string]any{"content": "Hello <script>alert(1)</script>"}})
+	writeRecords(t, path, map[string]any{"type": "user", "cwd": "/work/<project>", "message": map[string]any{"content": "Hello <script>alert(1)</script>\n\n```html\n<script>alert(1)</script>\n```"}})
 	app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"))
 	base := "/claude/projects/" + key("/work/<project>") + "/chats/" + key(path)
 	for _, url := range []string{"/", "/claude", "/codex", "/claude/projects/" + key("/work/<project>"), base, base + "/export?format=html", base + "/export?format=txt", base + "/export?format=jsonl", "/static/style.css", "/static/app.js"} {
@@ -25,9 +25,15 @@ func TestNavigationAndExports(t *testing.T) {
 				if strings.Contains(w.Body.String(), "<script>alert(1)</script>") {
 					t.Fatal("unescaped HTML")
 				}
-				if strings.Contains(url, "format=html") && (!strings.Contains(w.Body.String(), "--bg:#faf9f6") || strings.Contains(w.Body.String(), "ZgotmplZ") || strings.Contains(w.Body.String(), "src=")) {
+				if strings.Contains(url, "format=html") && (!strings.Contains(w.Body.String(), "<style>") || !strings.Contains(w.Body.String(), "color-scheme: dark;") || strings.Contains(w.Body.String(), "ZgotmplZ") || strings.Contains(w.Body.String(), "src=")) {
 					t.Fatal("export is not self contained", w.Body.String())
 				}
+			}
+			if url == base && !strings.Contains(w.Body.String(), `aria-current="page"`) {
+				t.Fatal("current conversation is not identified")
+			}
+			if strings.Contains(url, "format=html") && (strings.Contains(w.Body.String(), `class="chat-index"`) || strings.Contains(w.Body.String(), `data-copy`+" hidden")) {
+				t.Fatal("export contains interactive navigation")
 			}
 			if strings.Contains(url, "/export") && !strings.Contains(w.Header().Get("Content-Disposition"), "attachment;") {
 				t.Fatal("not a download")

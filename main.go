@@ -17,7 +17,7 @@ import (
 
 //go:embed templates/*.html static/*
 var assets embed.FS
-var pages = template.Must(template.New("").Funcs(template.FuncMap{"date": func(t time.Time) string { return t.Local().Format("02 Jan 2006, 15:04") }}).ParseFS(assets, "templates/*.html"))
+var pages = template.Must(template.New("").Funcs(template.FuncMap{"base": filepath.Base, "blocks": textBlocks, "stamp": displayStamp, "date": func(t time.Time) string { return t.Local().Format("02 Jan 2006, 15:04") }}).ParseFS(assets, "templates/*.html"))
 
 type Project struct {
 	ID, Name string
