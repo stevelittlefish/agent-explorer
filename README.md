@@ -1,6 +1,6 @@
 # Agent Explorer
 
-A small, read-only web browser and exporter for local Codex and Claude Code chats.
+A small, read-only web browser and exporter for local Codex, Claude Code, and pi chats.
 Go standard library, server-rendered HTML, CSS, and a little plain JavaScript. No
 external dependencies, database, frontend build step, or API keys.
 
@@ -29,16 +29,24 @@ Default data locations:
 
 - Codex: `~/.codex/sessions` and `~/.codex/archived_sessions`.
 - Claude Code: `~/.claude/projects`, including nested subagent transcripts.
+- pi: `~/.pi/agent/sessions`.
 
-`CODEX_HOME` and `CLAUDE_CONFIG_DIR` override the default agent data directories.
+`CODEX_HOME`, `CLAUDE_CONFIG_DIR`, and `PI_CODING_AGENT_DIR` override the default
+agent data directories.
 You can also specify them explicitly:
 
 ```sh
-go run . -addr 127.0.0.1:8080 -codex-dir /path/to/.codex -claude-dir /path/to/.claude
+go run . -addr 127.0.0.1:8080 -codex-dir /path/to/.codex -claude-dir /path/to/.claude -pi-dir /path/to/.pi/agent
 ```
 
 The server binds to loopback by default. It has no authentication; use it locally.
-All transcript access is read-only. Missing data directories show an empty list.
+All transcript access is read-only. Agents appear in the home page and navigation
+only when their configured data directory (or session directory) exists. An existing
+agent directory with no chats shows an empty list. Folder discovery refreshes on
+each request; absent agents return 404 if opened directly.
+
+For a custom pi session location, use `-pi-sessions-dir /path/to/sessions` or
+`PI_CODING_AGENT_SESSION_DIR`.
 Project folders come from recorded working directories; those folders do not need
 to exist anymore. Chat lists show most recently modified transcripts first.
 
@@ -57,7 +65,10 @@ Images appear as attachment placeholders; original attachment records remain in
 JSONL exports. Provider bookkeeping records and encrypted reasoning are omitted
 from readable views. Malformed records are skipped with a warning. Codex response
 records take precedence over duplicate event messages; older event-only transcripts
-are also supported.
+are also supported. pi supports named sessions, messages, thinking, tool calls and
+results, shell executions, and saved compaction/branch summaries. pi entries are
+shown in file order, including saved branches; original tree metadata remains in
+the JSONL export.
 
 Chat summaries are cached in memory and refreshed when files change. The selected
 conversation is read again on each request. No imported copies or indexes are

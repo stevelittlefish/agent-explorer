@@ -176,6 +176,8 @@ func readChat(path, agent string, full bool) (Chat, error) {
 							readContent(p["summary"], "reasoning", stamp, add)
 						}
 					}
+				} else if agent == "pi" {
+					readPiRecord(r, stamp, &c, &titleFound, add)
 				} else {
 					if c.Project == "" {
 						c.Project = str(r, "cwd")
@@ -216,7 +218,7 @@ func readChat(path, agent string, full bool) (Chat, error) {
 		}
 	}
 	if c.Project == "" {
-		if agent == "claude" {
+		if agent == "claude" || agent == "pi" {
 			c.Project = filepath.Base(filepath.Dir(path))
 		} else {
 			c.Project = "Unknown project"
@@ -250,6 +252,9 @@ func readContent(v any, role, stamp string, add func(string, string, string, boo
 		case "thinking":
 			flush()
 			add("reasoning", str(m, "thinking"), stamp, true)
+		case "toolCall":
+			flush()
+			add("tool", str(m, "name")+"\n"+pretty(m["arguments"]), stamp, true)
 		case "tool_use":
 			flush()
 			add("tool", str(m, "name")+"\n"+pretty(m["input"]), stamp, true)

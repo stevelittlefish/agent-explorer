@@ -97,7 +97,7 @@ summary { cursor: pointer; }
 .eyebrow { text-transform: uppercase; letter-spacing: .14em; font: 12px/1.8 var(--mono); color: var(--accent); margin: 0 0 24px; }
 .status-dot { display: inline-block; width: 6px; height: 6px; background: var(--accent); margin-right: 10px; vertical-align: middle; }
 .intro { color: var(--muted); font-size: 17px; margin: 24px 0 36px; }
-.agent-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.agent-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; }
 .agent-card { display: block; border: 1px solid var(--line); padding: 26px 30px; background: var(--panel); position: relative; }
 .agent-card:hover { border-color: var(--accent); background: #1a241a; color: var(--ink); }
 .card-number { color: var(--muted); font: 11px/1.8 var(--mono); letter-spacing: .1em; }

@@ -24,7 +24,11 @@ type Project struct {
 	Count    int
 	Updated  time.Time
 }
+type Agent struct {
+	ID, Name, Symbol, Directory string
+}
 type Page struct {
+	Agents                                      []Agent
 	Title, Agent, AgentName, Project, ProjectID string
 	CSS                                         template.CSS
 	Projects                                    []Project
@@ -32,7 +36,10 @@ type Page struct {
 	Chat                                        *Chat
 	Export                                      bool
 }
-type App struct{ store *Store }
+type App struct {
+	store  *Store
+	agents []Agent
+}
 
 func main() {
 	home, err := os.UserHomeDir()
@@ -47,17 +54,48 @@ func main() {
 	if claudeDefault == "" {
 		claudeDefault = filepath.Join(home, ".claude")
 	}
+	piDefault := os.Getenv("PI_CODING_AGENT_DIR")
+	if piDefault == "" {
+		piDefault = filepath.Join(home, ".pi", "agent")
+	}
 	addr := flag.String("addr", "127.0.0.1:8080", "HTTP listen address")
 	codex := flag.String("codex-dir", codexDefault, "Codex data directory")
 	claude := flag.String("claude-dir", claudeDefault, "Claude Code data directory")
+	pi := flag.String("pi-dir", piDefault, "pi agent data directory")
+	piSessions := flag.String("pi-sessions-dir", os.Getenv("PI_CODING_AGENT_SESSION_DIR"), "Optional pi sessions directory override")
 	flag.Parse()
-	app := newApp(*codex, *claude)
+	app := newApp(*codex, *claude, *pi)
+	if *piSessions != "" {
+		app.store.Roots["pi"] = []string{*piSessions}
+	}
 	server := &http.Server{Addr: *addr, Handler: app, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
 	log.Printf("Agent Explorer: http://%s", *addr)
 	log.Fatal(server.ListenAndServe())
 }
-func newApp(codex, claude string) *App {
-	return &App{&Store{Roots: map[string][]string{"codex": {filepath.Join(codex, "sessions"), filepath.Join(codex, "archived_sessions")}, "claude": {filepath.Join(claude, "projects")}}}}
+func newApp(codex, claude, pi string) *App {
+	return &App{
+		store: &Store{Roots: map[string][]string{
+			"codex":  {filepath.Join(codex, "sessions"), filepath.Join(codex, "archived_sessions")},
+			"claude": {filepath.Join(claude, "projects")},
+			"pi":     {filepath.Join(pi, "sessions")},
+		}},
+		agents: []Agent{{"codex", "Codex", ">_", codex}, {"claude", "Claude Code", "✳", claude}, {"pi", "pi", "π", pi}},
+	}
+}
+
+// Check on each request so folders added or removed do not require a restart.
+func (a *App) availableAgents() []Agent {
+	var available []Agent
+	for _, agent := range a.agents {
+		paths := append([]string{agent.Directory}, a.store.Roots[agent.ID]...)
+		for _, path := range paths {
+			if info, err := os.Stat(path); err == nil && info.IsDir() {
+				available = append(available, agent)
+				break
+			}
+		}
+	}
+	return available
 }
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -79,15 +117,19 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write(b)
 		return
 	}
-	p := Page{Title: "Agent Explorer"}
+	p := Page{Title: "Agent Explorer", Agents: a.availableAgents()}
 	if r.URL.Path == "/" {
 		render(w, p)
 		return
 	}
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-	names := map[string]string{"codex": "Codex", "claude": "Claude Code"}
 	p.Agent = parts[0]
-	p.AgentName = names[p.Agent]
+	for _, agent := range p.Agents {
+		if agent.ID == p.Agent {
+			p.AgentName = agent.Name
+			break
+		}
+	}
 	if p.AgentName == "" || !(len(parts) == 1 || len(parts) == 3 && parts[1] == "projects" || (len(parts) == 5 || len(parts) == 6) && parts[1] == "projects" && parts[3] == "chats") {
 		http.NotFound(w, r)
 		return

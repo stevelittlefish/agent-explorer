@@ -9,7 +9,7 @@
 <a class="skip-link" href="#content">Skip to content</a>
 <header class="masthead">
 {{if .Export}}<span class="brand"><span class="brand-mark" aria-hidden="true"></span>Agent Explorer</span>{{else}}<a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>Agent Explorer</a>
-<nav class="agent-nav" aria-label="Agents"><a href="/codex" {{if eq .Agent "codex"}}aria-current="true"{{end}}>Codex</a><a href="/claude" {{if eq .Agent "claude"}}aria-current="true"{{end}}>Claude Code</a></nav>{{end}}
+{{if .Agents}}<nav class="agent-nav" aria-label="Agents">{{range .Agents}}<a href="/{{.ID}}" {{if eq $.Agent .ID}}aria-current="true"{{end}}>{{.Name}}</a>{{end}}</nav>{{end}}{{end}}
 <span class="edition">Local archive</span>
 </header>
 {{if not .Export}}<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/">Agents</a>{{if .Agent}}<span aria-hidden="true">/</span><a href="/{{.Agent}}">{{.AgentName}}</a>{{end}}{{if .Project}}<span aria-hidden="true">/</span><a href="/{{.Agent}}/projects/{{.ProjectID}}" title="{{.Project}}">{{base .Project}}</a>{{end}}{{if .Chat}}<span aria-hidden="true">/</span><span aria-current="page">{{.Chat.Title}}</span>{{end}}</nav>{{end}}
@@ -49,7 +49,7 @@
 {{if .Projects}}<label class="filter" hidden><span class="sr-only">Filter projects</span><input type="search" placeholder="Search project folders…" data-filter></label><ol class="listing">{{range .Projects}}<li data-item><a href="/{{$.Agent}}/projects/{{.ID}}"><div><strong>{{base .Name}}</strong><span>{{.Name}}</span><span>{{.Count}} chats · {{date .Updated}}</span></div><span class="row-arrow" aria-hidden="true">↗</span></a></li>{{end}}</ol><p id="no-results" role="status" hidden>No matching projects.</p>{{else}}<p class="empty">No chats found. Start a chat in {{.AgentName}}, or set its data directory when starting this server.</p>{{end}}
 {{else}}
 <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> Your local archive</p><h1>Good conversations.<br>Worth keeping.</h1><p class="intro">Find the thought, follow the thread, take it with you.<br>Browse and export your agent chats.</p>
-<div class="agent-cards"><a class="agent-card" href="/codex"><span class="card-number">01 / AGENT</span><span class="agent-symbol" aria-hidden="true">&gt;_</span><h2>Codex</h2><p>Projects, conversations,<br>and everything along the way.</p><span class="card-action">Browse projects <span aria-hidden="true">↗</span></span></a><a class="agent-card" href="/claude"><span class="card-number">02 / AGENT</span><span class="agent-symbol" aria-hidden="true">✳</span><h2>Claude Code</h2><p>Your work, your words.<br>All in one quiet place.</p><span class="card-action">Browse projects <span aria-hidden="true">↗</span></span></a></div>
+{{if .Agents}}<div class="agent-cards">{{range .Agents}}<a class="agent-card" href="/{{.ID}}"><span class="card-number">LOCAL AGENT</span><span class="agent-symbol" aria-hidden="true">{{.Symbol}}</span><h2>{{.Name}}</h2><p>Projects, conversations,<br>and everything along the way.</p><span class="card-action">Browse projects <span aria-hidden="true">↗</span></span></a>{{end}}</div>{{else}}<p class="empty">No agent data folders found. Start a chat with Codex, Claude Code, or pi, or set a data directory when starting this server.</p>{{end}}
 <p class="archive-note">Read a chat. Export HTML, text, or the original JSONL.</p>
 {{end}}
 </main></div>
