@@ -121,6 +121,47 @@ Chat summaries are cached in memory and refreshed when files change. The selecte
 conversation is read again on each request. No imported copies or indexes are
 written to disk.
 
+## FAQ
+
+**Steve, if I download the executable of your shitty app, how do I know it will
+not infect me with viruses?**
+
+Look at the source code — it's all right here. If you don't trust it, build from
+source and read every line on the way. We can't tell you what to do; we're not your
+mum. (For what it's worth: no network calls, no database, no telemetry, and every
+package ships a `SHA256SUMS` so you can confirm the bytes are the bytes.)
+
+**Steve, there are lots of digs at Apple. Are you an Apple hater?**
+
+Not at all — Apple make genuinely good products. They're just not for me. I don't
+like how uncustomisable everything is, but the real dealbreaker is this: I DO NOT
+WANT TO SIGN MY STUPID APP WITH THEIR CRAPPY DEV TOOLS. The friction is too high,
+the walls of the garden are too tall, and I'm not willing to buy their overpriced
+(but, honestly, quite lovely) hardware with its weird, non-standard keyboard
+layout. Admiration and refusal can coexist. This is that.
+
+**Does this mean you're a Windows fanboy instead?**
+
+God, no. I don't like Apple, but Windows is a steaming pile of garbage. It has
+exactly one redeeming quality here: shipping a Windows executable is easy, and a
+great many people have been brainwashed into believing Windows is The One True
+Operating System — an evil lie spread by THE ORGANIZATION. Everyone knows that
+Linux is The One True Operating System. We build for Windows out of mercy, not
+loyalty.
+
+**Steve, why isn't *&lt;insert coding agent&gt;* supported by your shitty tool?**
+
+Probably because I don't use *&lt;insert coding agent&gt;*. If it's free and widely
+available, I can add it. Just ask me — say "pretty please with a cherry on top" —
+and if I got out of the right side of bed that day, I might add it.
+
+Or you could just use *&lt;insert coding agent&gt;* yourself and submit a PR.
+
+**Which coding agent did you use to build this?**
+
+Codex with GPT 6 Astra. But then Claude got his grubby fingers on it and couldn't
+resist co-authoring a few commits to make it look like he did it. Naughty Claude.
+
 ## Build and test
 
 ```sh
