@@ -4,6 +4,8 @@ A small, read-only web browser and exporter for local Codex, Claude Code, and pi
 Go standard library, server-rendered HTML, CSS, and a little plain JavaScript. No
 external dependencies, database, frontend build step, or API keys.
 
+<img src="assets/screenshot.png" alt="Agent Explorer showing a conversation with the Phosphor dark interface" width="640">
+
 ## What does it do?
 
 Agent Explorer turns the chat logs already on your disk into a readable local
