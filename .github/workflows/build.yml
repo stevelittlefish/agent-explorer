@@ -1,8 +1,8 @@
 name: Build
 
 on:
-  release:
-    types: [published]
+  push:
+    tags: ['v*']
   workflow_dispatch:
 
 permissions:
@@ -89,3 +89,31 @@ jobs:
             dist/*.zip
           if-no-files-found: error
           retention-days: 30
+
+  release:
+    name: Publish release
+    needs: build
+    # Only attach files to a Release when a version tag was pushed, not on
+    # manual (workflow_dispatch) test runs.
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download built packages
+        uses: actions/download-artifact@v7
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create the release and attach the downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          # Create the release if it does not exist yet (auto-generating notes),
+          # then upload/overwrite the packaged downloads onto it.
+          gh release view "$TAG" >/dev/null 2>&1 \
+            || gh release create "$TAG" --title "$TAG" --generate-notes
+          gh release upload "$TAG" --clobber dist/*.tar.gz dist/*.zip

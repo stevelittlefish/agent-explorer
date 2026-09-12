@@ -20,13 +20,11 @@ sending them to a service.
 
 ## Download and run
 
-Linux and Windows **x64 / amd64** builds are produced by
-[the Build workflow](https://github.com/stevelittlefish/agent-explorer/actions/workflows/build.yml),
-which runs when a release is published. Open the run for the latest release and
-download the matching item under **Artifacts** (GitHub sign-in required). Extract
-the artifact download, then unpack the enclosed `.tar.gz` or `.zip`. Each package
-contains the executable, this README, the license, and `SHA256SUMS` for checking
-the executable.
+Linux and Windows **x64 / amd64** builds are attached to each
+[GitHub Release](https://github.com/stevelittlefish/agent-explorer/releases).
+Open the latest release and download the `.tar.gz` (Linux) or `.zip` (Windows)
+under **Assets** — no sign-in required. Each package contains the executable, this
+README, the license, and `SHA256SUMS` for checking the executable.
 
 **Linux:**
 
@@ -175,22 +173,32 @@ Templates and static assets are embedded in the binary. Rebuild after changing t
 
 ## Releasing
 
-The Build workflow runs only when a GitHub Release is published (or when triggered
-by hand from the Actions tab). To cut a release:
+Releasing is driven entirely by pushing a version tag. Everything else — building,
+testing, creating the GitHub Release, and attaching the downloads — is automatic.
+To cut a release:
 
-1. On GitHub, open **Releases** (right sidebar of the repo) and choose
-   **Draft a new release**.
-2. Under **Choose a tag**, type a new version tag such as `v1.0.0` and select
-   **Create new tag on publish**. Target the `main` branch.
-3. Add a title and notes, then choose **Publish release**.
+```sh
+git tag v1.0.0
+git push origin v1.0.0
+```
 
-Publishing fires the Build workflow. It runs native Linux and Windows jobs: each
-runs race-enabled tests and `go vet`, builds an amd64 executable with CGO disabled,
-checks that it starts with `-help`, and uploads a package. CI uses the latest stable
-Go release. Build artifacts are attached to the workflow run and kept for 30 days;
-they are workflow downloads, not files attached to the Release itself. No macOS job
-sneaks in through the garden gate, Steve Jobs.
+Or use the helper, which shows the latest tag and suggests the next one when run
+with no arguments:
 
-To test the workflow without publishing a release, open the
+```sh
+scripts/release.sh           # e.g. "Latest: v1.0.0  Suggested next: v1.0.1"
+scripts/release.sh v1.0.1    # tag and push, cutting the release
+```
+
+Pushing a `v*` tag fires the Build workflow. It runs native Linux and Windows jobs:
+each runs race-enabled tests and `go vet`, builds an amd64 executable with CGO
+disabled, checks that it starts with `-help`, and packages it. A final job then
+creates a GitHub Release named after the tag (with auto-generated notes) and uploads
+the Linux `.tar.gz` and Windows `.zip` to it as assets. CI uses the latest stable Go
+release. The same packages are also kept on the workflow run for 30 days. No macOS
+job sneaks in through the garden gate, Steve Jobs.
+
+To test a build without cutting a release, open the
 [Build workflow](https://github.com/stevelittlefish/agent-explorer/actions/workflows/build.yml)
-on the Actions tab and use **Run workflow**.
+on the Actions tab and use **Run workflow**; a manual run builds and packages but
+does not create a Release.
