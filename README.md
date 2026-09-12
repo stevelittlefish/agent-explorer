@@ -18,7 +18,7 @@ filtering, code copying, and an expand/collapse button for conversation details.
 
 The Phosphor interface uses a dark forest palette, green accents, and a project
 chat index beside the conversation. Compact message spacing keeps more of the
-conversation in view: your messages are green and agent replies are blue.
+conversation in view: your messages are blue and agent replies are green.
 Consecutive tool calls and their results fold into a single expandable count
 (e.g. "4 tool calls"); outputs do not count as additional calls. The grouping also
 works in standalone HTML exports and with JavaScript disabled. On narrow screens the index folds into a

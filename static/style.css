@@ -6,7 +6,7 @@
   --muted: #a0aca1;
   --line: #303d32;
   --accent: #b1d68e;
-  --agent: #9dc8f0;
+  --user: #9dc8f0;
   --mono: ui-monospace, "Cascadia Code", "Liberation Mono", monospace;
 }
 * { box-sizing: border-box; }
@@ -70,10 +70,10 @@ button:hover { color: var(--accent); }
 .message { margin: 0 0 14px; min-width: 0; }
 .message:not(.detail-message) { display: grid; grid-template-columns: 85px minmax(0, 1fr); gap: 18px; }
 .speaker { text-transform: uppercase; font: 600 12px/1.8 var(--mono); padding-top: 9px; overflow-wrap: anywhere; }
-.user .speaker { color: var(--accent); }
-.message-body { border-left: 3px solid var(--agent); padding: 8px 14px; min-width: 0; background: #141e26; border-radius: 0 3px 3px 0; }
-.assistant .speaker { color: var(--agent); }
-.user .message-body { border-color: var(--accent); background: #1a2317; }
+.user .speaker { color: var(--user); }
+.message-body { border-left: 3px solid var(--accent); padding: 8px 14px; min-width: 0; background: #1a2317; border-radius: 0 3px 3px 0; }
+.assistant .speaker { color: var(--accent); }
+.user .message-body { border-color: var(--user); background: #141e26; }
 .prose { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 16px; line-height: 1.6; }
 .prose + .prose { margin-top: 10px; }
 .message-time { display: block; margin-top: 4px; text-transform: none; color: var(--muted); font: 10px/1.6 var(--mono); }
