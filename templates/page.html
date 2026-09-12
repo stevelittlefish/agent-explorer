@@ -1,0 +1,22 @@
+{{define "page"}}<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{.Title}} · Agent Explorer</title>
+{{if .Export}}<style>{{.CSS}}</style>{{else}}<link rel="stylesheet" href="/static/style.css"><script src="/static/app.js" defer></script>{{end}}</head>
+<body><header>{{if .Export}}<strong>Agent Explorer</strong>{{else}}<a class="brand" href="/">Agent Explorer</a>{{end}}<span>Local chat browser</span></header><main>
+{{if not .Export}}<nav aria-label="Breadcrumb"><a href="/">Agents</a>{{if .Agent}} / <a href="/{{.Agent}}">{{.AgentName}}</a>{{end}}{{if .Project}} / <a href="/{{.Agent}}/projects/{{.ProjectID}}">{{.Project}}</a>{{end}}{{if .Chat}} / Chat{{end}}</nav>{{end}}
+{{if .Chat}}
+<h1>{{.Chat.Title}}</h1><p class="muted">{{.AgentName}} · {{.Project}} · Updated {{date .Chat.Updated}}</p>
+{{if not .Export}}<div class="actions"><span>Export:</span><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=html">HTML</a><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=txt">Text</a><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=jsonl">Original JSONL</a><button type="button" id="details-toggle" hidden>Expand details</button></div>{{end}}
+{{if .Chat.Warnings}}<p class="notice">{{.Chat.Warnings}} unreadable record(s) skipped. The original JSONL export preserves the source file.</p>{{end}}
+<div class="conversation">{{range .Chat.Messages}}<article class="message {{.Role}}">{{if .Detail}}<details><summary>{{.Role}} <time>{{.Time}}</time></summary><pre>{{.Text}}</pre></details>{{else}}<div class="message-heading"><strong>{{.Role}}</strong><time>{{.Time}}</time></div><pre>{{.Text}}</pre>{{end}}</article>{{else}}<p class="empty">No readable messages in this chat.</p>{{end}}</div>
+{{else if .Project}}
+<h1>{{.Project}}</h1><p class="muted">{{len .Chats}} chats · Most recently updated first</p>
+<label class="filter" hidden>Filter chats <input type="search" placeholder="Type a chat title…" data-filter></label>
+<ul class="listing">{{range .Chats}}<li data-item><a href="/{{$.Agent}}/projects/{{$.ProjectID}}/chats/{{.ID}}"><strong>{{.Title}}</strong><span>{{date .Updated}}</span></a></li>{{end}}</ul><p id="no-results" hidden>No matches.</p>
+{{else if .Agent}}
+<h1>{{.AgentName}}</h1><p class="muted">Choose a project folder.</p>
+{{if .Projects}}<label class="filter" hidden>Filter projects <input type="search" placeholder="Type a project path…" data-filter></label><ul class="listing">{{range .Projects}}<li data-item><a href="/{{$.Agent}}/projects/{{.ID}}"><strong>{{.Name}}</strong><span>{{.Count}} chats · {{date .Updated}}</span></a></li>{{end}}</ul><p id="no-results" hidden>No matches.</p>{{else}}<p class="empty">No chats found. Start a chat in {{.AgentName}}, or set its data directory when starting this server.</p>{{end}}
+{{else}}
+<h1>Your agent chats</h1><p class="muted">Choose an agent to browse projects, read conversations, and export chats.</p>
+<ul class="listing agents"><li><a href="/codex"><strong>Codex</strong><span>Browse projects →</span></a></li><li><a href="/claude"><strong>Claude Code</strong><span>Browse projects →</span></a></li></ul>
+{{end}}
+</main><footer>Agent Explorer · Local files, read only.</footer></body></html>{{end}}
