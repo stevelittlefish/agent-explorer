@@ -10,7 +10,6 @@
 <header class="masthead">
 {{if .Export}}<span class="brand"><span class="brand-mark" aria-hidden="true"></span>Agent Explorer</span>{{else}}<a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>Agent Explorer</a>
 {{if .Agents}}<nav class="agent-nav" aria-label="Agents">{{range .Agents}}<a href="/{{.ID}}" {{if eq $.Agent .ID}}aria-current="true"{{end}}>{{.Name}}</a>{{end}}</nav>{{end}}{{end}}
-<span class="edition">Local archive</span>
 </header>
 {{if not .Export}}<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/">Agents</a>{{if .Agent}}<span aria-hidden="true">/</span><a href="/{{.Agent}}">{{.AgentName}}</a>{{end}}{{if .Project}}<span aria-hidden="true">/</span><a href="/{{.Agent}}/projects/{{.ProjectID}}" title="{{.Project}}">{{base .Project}}</a>{{end}}{{if .Chat}}<span aria-hidden="true">/</span><span aria-current="page">{{.Chat.Title}}</span>{{end}}</nav>{{end}}
 <div class="layout {{if and .Chat (not .Export)}}with-index{{end}}">
