@@ -39,7 +39,7 @@ userMessages.forEach((message, position) => {
   button.setAttribute('aria-label', button.title);
   button.disabled = !next;
   message.tabIndex = -1;
-  message.querySelector('.speaker').firstChild.after(button);
+  message.querySelector('.speaker').prepend(button);
   if (next) {
     button.addEventListener('click', () => {
       next.focus({ preventScroll: true });

@@ -72,8 +72,8 @@ button:hover { color: var(--accent); }
 .message { margin: 0 0 14px; min-width: 0; }
 .message:not(.detail-message) { display: grid; grid-template-columns: 85px minmax(0, 1fr); gap: 18px; }
 .speaker { text-transform: uppercase; font: 600 12px/1.8 var(--mono); padding-top: 9px; overflow-wrap: anywhere; }
-.user .speaker { color: var(--user); }
-.next-user { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-left: 6px; border: 1px solid var(--user-border); border-radius: 3px; color: var(--user); font: 14px/1 var(--mono); vertical-align: middle; }
+.user .speaker { position: relative; color: var(--user); }
+.next-user { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-right: 6px; border: 1px solid var(--user-border); border-radius: 3px; color: var(--user); font: 14px/1 var(--mono); vertical-align: middle; }
 .next-user:hover:not(:disabled) { background: #1e3040; color: var(--ink); }
 .next-user:disabled { opacity: .35; cursor: default; }
 .message-kind { display: block; width: fit-content; margin-top: 4px; padding: 1px 5px; border: 1px solid var(--user-border); border-radius: 3px; color: var(--user); font: 10px/1.6 var(--mono); text-transform: none; }
@@ -134,6 +134,7 @@ input:focus { border-color: var(--accent); }
 footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 22px 36px; border-top: 1px solid var(--line); font: 11px/1.8 var(--mono); color: var(--muted); }
 .export .reader { max-width: 1100px; margin: auto; }
 .export .edition { margin-left: auto; }
+@media (min-width: 1200px) { .next-user { position: absolute; top: 9px; left: -32px; margin: 0; } }
 @media (min-width: 1600px) { .reader { max-width: 1360px; width: 100%; margin: 0 auto; } }
 @media (max-width: 1200px) { .with-index { grid-template-columns: 250px minmax(0, 1fr); } .page-heading { flex-direction: column; gap: 20px; } .edition { display: none; } .masthead { gap: 20px; } }
 @media (max-width: 760px) {
@@ -152,7 +153,7 @@ footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16
   .message:not(.detail-message) { display: block; }
   .speaker { padding: 0; margin-bottom: 4px; display: flex; gap: 12px; align-items: baseline; }
   .speaker .message-kind { margin-top: 0; }
-  .speaker .next-user { margin-left: 0; flex-shrink: 0; }
+  .speaker .next-user { margin: 0; flex-shrink: 0; }
   .speaker .message-time { margin: 0 0 0 auto; }
   .message-body { padding: 8px 12px; }
   .prose { font-size: 15px; }
