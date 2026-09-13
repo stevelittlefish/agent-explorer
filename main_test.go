@@ -14,12 +14,15 @@ func TestNavigationAndExports(t *testing.T) {
 	writeRecords(t, path, map[string]any{"type": "user", "cwd": "/work/<project>", "message": map[string]any{"content": "Hello <script>alert(1)</script>\n\n```html\n<script>alert(1)</script>\n```"}})
 	app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), filepath.Join(root, "pi"), filepath.Join(root, "cursor"))
 	base := "/claude/projects/" + key("/work/<project>") + "/chats/" + key(path)
-	for _, url := range []string{"/", "/claude", "/claude/projects/" + key("/work/<project>"), base, base + "/export?format=html", base + "/export?format=txt", base + "/export?format=jsonl", "/static/style.css", "/static/app.js"} {
+	for _, url := range []string{"/", "/claude", "/claude/projects/" + key("/work/<project>"), base, base + "/export?format=html", base + "/export?format=txt", base + "/export?format=jsonl", "/static/style.css", "/static/app.js", "/static/favicon.svg"} {
 		t.Run(url, func(t *testing.T) {
 			w := httptest.NewRecorder()
 			app.ServeHTTP(w, httptest.NewRequest("GET", url, nil))
 			if w.Code != 200 {
 				t.Fatalf("%d: %s", w.Code, w.Body.String())
+			}
+			if url == "/static/favicon.svg" && (w.Header().Get("Content-Type") != "image/svg+xml" || !strings.Contains(w.Body.String(), "<svg")) {
+				t.Fatal("favicon is not served as SVG")
 			}
 			if strings.Contains(w.Header().Get("Content-Type"), "text/html") {
 				if strings.Contains(w.Body.String(), "<script>alert(1)</script>") {

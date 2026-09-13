@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark">
 <title>{{.Title}} · Agent Explorer</title>
+{{if not .Export}}<link rel="icon" type="image/svg+xml" sizes="any" href="/static/favicon.svg">{{end}}
 {{if .Export}}<style>{{.CSS}}</style>{{else}}<link rel="stylesheet" href="/static/style.css"><script src="/static/app.js" defer></script>{{end}}
 </head>
 <body class="{{if .Export}}export{{end}}">

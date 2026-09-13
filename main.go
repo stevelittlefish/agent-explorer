@@ -107,16 +107,18 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	w.Header().Set("Cache-Control", "no-store")
-	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'")
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; img-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'")
 	if r.Method != "GET" && r.Method != "HEAD" {
 		w.Header().Set("Allow", "GET, HEAD")
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	if r.URL.Path == "/static/style.css" || r.URL.Path == "/static/app.js" {
+	if r.URL.Path == "/static/style.css" || r.URL.Path == "/static/app.js" || r.URL.Path == "/static/favicon.svg" {
 		b, _ := assets.ReadFile(strings.TrimPrefix(r.URL.Path, "/"))
 		if strings.HasSuffix(r.URL.Path, ".css") {
 			w.Header().Set("Content-Type", "text/css; charset=utf-8")
+		} else if strings.HasSuffix(r.URL.Path, ".svg") {
+			w.Header().Set("Content-Type", "image/svg+xml")
 		} else {
 			w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 		}
