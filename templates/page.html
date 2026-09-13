@@ -9,7 +9,7 @@
 <body class="{{if .Export}}export{{end}}">
 <a class="skip-link" href="#content">Skip to content</a>
 <header class="masthead">
-{{if .Export}}<span class="brand"><span class="brand-mark" aria-hidden="true"></span>Agent Explorer</span>{{else}}<a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>Agent Explorer</a>
+{{if .Export}}<span class="brand">{{template "brand-mark"}}Agent Explorer</span>{{else}}<a class="brand" href="/">{{template "brand-mark"}}Agent Explorer</a>
 {{if .Agents}}<nav class="agent-nav" aria-label="Agents">{{range .Agents}}<a href="/{{.ID}}" {{if eq $.Agent .ID}}aria-current="true"{{end}}>{{.Name}}</a>{{end}}</nav>{{end}}{{end}}
 </header>
 {{if not .Export}}<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/">Agents</a>{{if .Agent}}<span aria-hidden="true">/</span><a href="/{{.Agent}}">{{.AgentName}}</a>{{end}}{{if .Project}}<span aria-hidden="true">/</span><a href="/{{.Agent}}/projects/{{.ProjectID}}" title="{{.Project}}">{{base .Project}}</a>{{end}}{{if .Chat}}<span aria-hidden="true">/</span><span aria-current="page">{{.Chat.Title}}</span>{{end}}</nav>{{end}}
@@ -56,3 +56,4 @@
 </main></div>
 <footer><span><span class="status-dot" aria-hidden="true"></span> Local files · Read only</span><span>Agent Explorer</span></footer>
 </body></html>{{end}}
+{{define "brand-mark"}}<svg class="brand-mark" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="6" fill="#101411"/><path d="m8 10 6 6-6 6m10 0h6" fill="none" stroke="#b1d68e" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"/></svg>{{end}}
