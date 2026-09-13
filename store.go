@@ -18,6 +18,7 @@ import (
 
 type Message struct {
 	Role, Text, Time string
+	Kind             string
 	Detail           bool
 	ToolResult       bool
 }
@@ -127,6 +128,8 @@ func readChat(path, agent string, full bool) (Chat, error) {
 	var events []Message
 	hasResponses := false
 	titleFound := false
+	var turn codexTurn
+	messageKind := ""
 	add := func(role, text, stamp string, detail bool) {
 		if strings.TrimSpace(text) == "" {
 			return
@@ -140,7 +143,11 @@ func readChat(path, agent string, full bool) (Chat, error) {
 			if isResult {
 				role = "tool"
 			}
-			c.Messages = append(c.Messages, Message{Role: role, Text: text, Time: stamp, Detail: detail, ToolResult: isResult})
+			kind := ""
+			if role == "user" && !detail {
+				kind = messageKind
+			}
+			c.Messages = append(c.Messages, Message{Kind: kind, Role: role, Text: text, Time: stamp, Detail: detail, ToolResult: isResult})
 		}
 	}
 	for {
@@ -150,6 +157,7 @@ func readChat(path, agent string, full bool) (Chat, error) {
 			if json.Unmarshal(line, &r) != nil {
 				c.Warnings++
 			} else {
+				messageKind = ""
 				typ, stamp := str(r, "type"), str(r, "timestamp")
 				if agent == "codex" {
 					p := obj(r, "payload")
@@ -159,6 +167,7 @@ func readChat(path, agent string, full bool) (Chat, error) {
 							c.Project = cwd
 						}
 					case "event_msg":
+						turn.event(p)
 						role := ""
 						switch str(p, "type") {
 						case "user_message":
@@ -167,7 +176,11 @@ func readChat(path, agent string, full bool) (Chat, error) {
 							role = "assistant"
 						}
 						if role != "" {
-							events = append(events, Message{Role: role, Text: str(p, "message"), Time: stamp})
+							kind := ""
+							if role == "user" {
+								kind = turn.input(p, str(p, "message"), true)
+							}
+							events = append(events, Message{Role: role, Text: str(p, "message"), Time: stamp, Kind: kind})
 						}
 					case "response_item":
 						switch str(p, "type") {
@@ -175,6 +188,9 @@ func readChat(path, agent string, full bool) (Chat, error) {
 							role := str(p, "role")
 							if role == "user" || role == "assistant" {
 								hasResponses = true
+							}
+							if role == "user" {
+								messageKind = turn.input(p, contentText(p["content"]), false)
 							}
 							readContent(p["content"], role, stamp, add)
 						case "function_call", "custom_tool_call":
@@ -211,6 +227,9 @@ func readChat(path, agent string, full bool) (Chat, error) {
 					switch typ {
 					case "user", "assistant":
 						p := obj(r, "message")
+						if typ == "user" && str(r, "promptSource") == "queued" {
+							messageKind = "Queued"
+						}
 						readContent(p["content"], typ, stamp, add)
 					case "summary":
 						if t := str(r, "summary"); t != "" {
@@ -240,6 +259,7 @@ func readChat(path, agent string, full bool) (Chat, error) {
 	}
 	if agent == "codex" && !hasResponses {
 		for _, m := range events {
+			messageKind = m.Kind
 			add(m.Role, m.Text, m.Time, false)
 		}
 	}

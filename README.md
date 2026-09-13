@@ -109,6 +109,13 @@ Each conversation offers:
 
 Message text and internal whitespace are preserved, with fenced code shown in separate
 code blocks. Other Markdown remains readable source text.
+Codex user messages added after the initial input within a recorded active turn
+are labelled **Steering**. Injected context is excluded using message metadata
+when available; logs without turn boundaries remain unlabelled. Claude Code
+messages explicitly recorded with `promptSource: "queued"` are labelled **Queued**.
+These provider-specific labels appear in the reader and HTML/text exports; original
+JSONL stays unchanged. Cursor and pi messages have no such labels.
+
 Images appear as attachment placeholders; original attachment records remain in
 JSONL exports. Provider bookkeeping records and encrypted reasoning are omitted
 from readable views. Malformed records are skipped with a warning. Codex response

@@ -214,7 +214,11 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 				fmt.Fprintf(w, "%s\n%s · %s\n\n", chat.Title, p.AgentName, chat.Project)
 				for _, m := range chat.Messages {
-					fmt.Fprintf(w, "--- %s %s ---\n%s\n\n", m.Role, m.Time, m.Text)
+					role := m.Role
+					if m.Kind != "" {
+						role += " [" + m.Kind + "]"
+					}
+					fmt.Fprintf(w, "--- %s %s ---\n%s\n\n", role, m.Time, m.Text)
 				}
 			case "html":
 				p.Export = true
