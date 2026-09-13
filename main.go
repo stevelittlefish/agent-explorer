@@ -58,13 +58,18 @@ func main() {
 	if piDefault == "" {
 		piDefault = filepath.Join(home, ".pi", "agent")
 	}
+	cursorDefault := os.Getenv("CURSOR_HOME")
+	if cursorDefault == "" {
+		cursorDefault = filepath.Join(home, ".cursor")
+	}
+	cursor := flag.String("cursor-dir", cursorDefault, "Cursor data directory")
 	addr := flag.String("addr", "127.0.0.1:8484", "HTTP listen address")
 	codex := flag.String("codex-dir", codexDefault, "Codex data directory")
 	claude := flag.String("claude-dir", claudeDefault, "Claude Code data directory")
 	pi := flag.String("pi-dir", piDefault, "pi agent data directory")
 	piSessions := flag.String("pi-sessions-dir", os.Getenv("PI_CODING_AGENT_SESSION_DIR"), "Optional pi sessions directory override")
 	flag.Parse()
-	app := newApp(*codex, *claude, *pi)
+	app := newApp(*codex, *claude, *pi, *cursor)
 	if *piSessions != "" {
 		app.store.Roots["pi"] = []string{*piSessions}
 	}
@@ -72,14 +77,15 @@ func main() {
 	log.Printf("Agent Explorer: http://%s", *addr)
 	log.Fatal(server.ListenAndServe())
 }
-func newApp(codex, claude, pi string) *App {
+func newApp(codex, claude, pi, cursor string) *App {
 	return &App{
 		store: &Store{Roots: map[string][]string{
 			"codex":  {filepath.Join(codex, "sessions"), filepath.Join(codex, "archived_sessions")},
 			"claude": {filepath.Join(claude, "projects")},
 			"pi":     {filepath.Join(pi, "sessions")},
+			"cursor": {filepath.Join(cursor, "projects")},
 		}},
-		agents: []Agent{{"codex", "Codex", ">_", codex}, {"claude", "Claude Code", "✳", claude}, {"pi", "pi", "π", pi}},
+		agents: []Agent{{"codex", "Codex", ">_", codex}, {"claude", "Claude Code", "✳", claude}, {"pi", "pi", "π", pi}, {"cursor", "Cursor", "↗", cursor}},
 	}
 }
 

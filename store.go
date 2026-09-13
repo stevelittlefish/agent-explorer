@@ -54,6 +54,19 @@ func (s *Store) List(agent string) ([]Chat, error) {
 			if err != nil {
 				return err
 			}
+			if agent == "cursor" && d.IsDir() && path != root {
+				rel, err := filepath.Rel(root, path)
+				if err != nil {
+					return err
+				}
+				parts := strings.Split(rel, string(filepath.Separator))
+				if len(parts) == 2 && parts[1] != "agent-transcripts" {
+					return filepath.SkipDir
+				}
+			}
+			if agent == "cursor" && !d.IsDir() && cursorProject(path) == "" {
+				return nil
+			}
 			if d.IsDir() || d.Type()&os.ModeSymlink != 0 || filepath.Ext(path) != ".jsonl" {
 				return nil
 			}
@@ -176,6 +189,19 @@ func readChat(path, agent string, full bool) (Chat, error) {
 							readContent(p["summary"], "reasoning", stamp, add)
 						}
 					}
+				} else if agent == "cursor" {
+					if cwd := str(r, "cwd"); cwd != "" {
+						c.Project = cwd
+					}
+					role := str(r, "role")
+					if role == "user" || role == "assistant" {
+						readContent(obj(r, "message")["content"], role, stamp, func(role, text, stamp string, detail bool) {
+							if role == "user" && !detail {
+								text = cursorUserText(text)
+							}
+							add(role, text, stamp, detail)
+						})
+					}
 				} else if agent == "pi" {
 					readPiRecord(r, stamp, &c, &titleFound, add)
 				} else {
@@ -218,7 +244,12 @@ func readChat(path, agent string, full bool) (Chat, error) {
 		}
 	}
 	if c.Project == "" {
-		if agent == "claude" || agent == "pi" {
+		if agent == "cursor" {
+			c.Project = cursorProject(path)
+			if c.Project == "" {
+				c.Project = "Unknown project"
+			}
+		} else if agent == "claude" || agent == "pi" {
 			c.Project = filepath.Base(filepath.Dir(path))
 		} else {
 			c.Project = "Unknown project"

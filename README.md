@@ -1,6 +1,6 @@
 # Agent Explorer
 
-A small, read-only web browser and exporter for local Codex, Claude Code, and pi chats.
+A small, read-only web browser and exporter for local Codex, Claude Code, pi, and Cursor chats.
 Go standard library, server-rendered HTML, CSS, and a little plain JavaScript. No
 external dependencies, database, frontend build step, or API keys.
 
@@ -13,7 +13,7 @@ website. Choose **an agent → a project → a conversation**, revisit the work,
 export a chat to keep or share. It reads your files without modifying them or
 sending them to a service.
 
-- Supports **Codex, Claude Code, and pi**; missing agent folders stay out of the UI.
+- Supports **Codex, Claude Code, pi, and Cursor**; missing agent folders stay out of the UI.
 - Groups consecutive tool calls behind one expandable line.
 - Uses a compact dark interface: blue for you, green for the agent.
 - Exports standalone **HTML**, readable **text**, or untouched **JSONL**.
@@ -77,13 +77,14 @@ Default data locations:
 - Codex: `~/.codex/sessions` and `~/.codex/archived_sessions`.
 - Claude Code: `~/.claude/projects`, including nested subagent transcripts.
 - pi: `~/.pi/agent/sessions`.
+- Cursor: `~/.cursor/projects/*/agent-transcripts`, including nested sessions and subagents.
 
-`CODEX_HOME`, `CLAUDE_CONFIG_DIR`, and `PI_CODING_AGENT_DIR` override the default
+`CODEX_HOME`, `CLAUDE_CONFIG_DIR`, `PI_CODING_AGENT_DIR`, and `CURSOR_HOME` override the default
 agent data directories.
 You can also specify them explicitly:
 
 ```sh
-go run . -addr 127.0.0.1:8484 -codex-dir /path/to/.codex -claude-dir /path/to/.claude -pi-dir /path/to/.pi/agent
+go run . -addr 127.0.0.1:8484 -codex-dir /path/to/.codex -claude-dir /path/to/.claude -pi-dir /path/to/.pi/agent -cursor-dir /path/to/.cursor
 ```
 
 The server binds to loopback by default. It has no authentication; use it locally.
@@ -116,6 +117,13 @@ are also supported. pi supports named sessions, messages, thinking, tool calls a
 results, shell executions, and saved compaction/branch summaries. pi entries are
 shown in file order, including saved branches; original tree metadata remains in
 the JSONL export.
+
+Cursor reads local JSONL agent transcripts, including messages and recorded tool
+calls. User prompt wrappers are removed in readable views; original JSONL exports
+stay untouched. When no working directory is recorded, projects use Cursor's saved
+workspace slug (its encoding cannot reliably be reversed). Message timestamps and
+tool outputs appear only when present in the transcript. Older database-only chats
+and Cursor CLI SQLite sessions are not supported.
 
 Chat summaries are cached in memory and refreshed when files change. The selected
 conversation is read again on each request. No imported copies or indexes are

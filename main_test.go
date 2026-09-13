@@ -12,7 +12,7 @@ func TestNavigationAndExports(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "claude", "projects", "encoded-project", "chat.jsonl")
 	writeRecords(t, path, map[string]any{"type": "user", "cwd": "/work/<project>", "message": map[string]any{"content": "Hello <script>alert(1)</script>\n\n```html\n<script>alert(1)</script>\n```"}})
-	app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), filepath.Join(root, "pi"))
+	app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), filepath.Join(root, "pi"), filepath.Join(root, "cursor"))
 	base := "/claude/projects/" + key("/work/<project>") + "/chats/" + key(path)
 	for _, url := range []string{"/", "/claude", "/claude/projects/" + key("/work/<project>"), base, base + "/export?format=html", base + "/export?format=txt", base + "/export?format=jsonl", "/static/style.css", "/static/app.js"} {
 		t.Run(url, func(t *testing.T) {
@@ -63,7 +63,7 @@ func TestNavigationAndExports(t *testing.T) {
 func TestAgentDiscovery(t *testing.T) {
 	root := t.TempDir()
 	codex, claude, pi := filepath.Join(root, "codex"), filepath.Join(root, "claude"), filepath.Join(root, "pi")
-	app := newApp(codex, claude, pi)
+	app := newApp(codex, claude, pi, filepath.Join(root, "cursor"))
 	request := func(path string) *httptest.ResponseRecorder {
 		t.Helper()
 		w := httptest.NewRecorder()
@@ -112,7 +112,7 @@ func TestPiNavigationAndExports(t *testing.T) {
 	pi := filepath.Join(root, "pi")
 	path := filepath.Join(pi, "sessions", "encoded-project", "session.jsonl")
 	piFixture(t, path)
-	app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), pi)
+	app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), pi, filepath.Join(root, "cursor"))
 	project := "/pi/projects/" + key("/work/pi-project")
 	chat := project + "/chats/" + key(path)
 	for _, url := range []string{"/", "/pi", project, chat, chat + "/export?format=html", chat + "/export?format=txt", chat + "/export?format=jsonl"} {
