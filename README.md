@@ -99,7 +99,11 @@ each request; absent agents return 404 if opened directly.
 For a custom pi session location, use `-pi-sessions-dir /path/to/sessions` or
 `PI_CODING_AGENT_SESSION_DIR`.
 Project folders come from recorded working directories; those folders do not need
-to exist anymore. Chat lists show most recently modified transcripts first.
+to exist anymore. Projects default to newest activity first, using their most recently modified
+transcript. The project list offers newest/oldest activity and case-insensitive
+name A–Z/Z–A sorting. Name sorting uses the displayed folder name, with the full
+path breaking ties. Sorting is stored in the page URL, so links and browser history
+preserve it. Chat lists show most recently modified transcripts first.
 
 ## Exports
 

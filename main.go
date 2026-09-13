@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 )
@@ -28,6 +27,7 @@ type Agent struct {
 	ID, Name, Symbol, Directory string
 }
 type Page struct {
+	ProjectSort                                 string
 	Agents                                      []Agent
 	Title, Agent, AgentName, Project, ProjectID string
 	CSS                                         template.CSS
@@ -155,12 +155,15 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				v = &Project{ID: c.ProjectID, Name: c.Project, Updated: c.Updated}
 				byID[c.ProjectID] = v
 			}
+			if c.Updated.After(v.Updated) {
+				v.Updated = c.Updated
+			}
 			v.Count++
 		}
 		for _, v := range byID {
 			p.Projects = append(p.Projects, *v)
 		}
-		sort.Slice(p.Projects, func(i, j int) bool { return p.Projects[i].Name < p.Projects[j].Name })
+		p.ProjectSort = sortProjects(p.Projects, r.URL.Query().Get("sort"))
 		render(w, p)
 		return
 	}

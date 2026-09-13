@@ -166,3 +166,9 @@ footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16
 .code-block:last-child { margin-bottom: 0; }
 
 .message-kind { display: inline-block; margin-top: 4px; padding: 1px 5px; border: 1px solid var(--user-border); border-radius: 3px; color: var(--user); font: 10px/1.6 var(--mono); text-transform: none; }
+
+.project-sort { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 20px 0; font-size: 13px; }
+.project-sort > span { color: var(--muted); margin-right: 4px; }
+.project-sort a { padding: 7px 11px; border: 1px solid var(--line); border-radius: 3px; }
+.project-sort a:hover { background: var(--panel); }
+.project-sort a[aria-current] { color: var(--accent); border-color: var(--accent); background: #202c1d; }
