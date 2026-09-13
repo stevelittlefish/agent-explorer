@@ -32,6 +32,7 @@
 {{if .Chat}}
 <div class="page-heading"><div><h1>{{.Chat.Title}}</h1><p class="metadata"><span title="{{.Project}}">{{.Project}}</span><span>{{.AgentName}} · {{date .Chat.Updated}}</span></p></div>
 {{if not .Export}}<nav class="exports" aria-label="Export conversation"><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=html" aria-label="Export HTML">HTML <span aria-hidden="true">↓</span></a><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=txt" aria-label="Export text">TXT <span aria-hidden="true">↓</span></a><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=jsonl" aria-label="Export original JSONL">JSONL <span aria-hidden="true">↓</span></a></nav>{{end}}</div>
+{{if .Chat.Usage.Present}}<p class="metadata usage-summary" aria-label="Recorded usage">{{if .Chat.Usage.HasTokens}}<span>{{.Chat.Usage.TokenLabel}} tokens</span>{{end}}{{if .Chat.Usage.HasCost}}<span>Recorded cost {{.Chat.Usage.CostLabel}}</span>{{end}}</p>{{end}}
 {{if .Chat.Warnings}}<p class="notice">{{.Chat.Warnings}} unreadable record(s) skipped. The original JSONL export preserves the source file.</p>{{end}}
 {{if not .Export}}<div class="reader-tools"><span>{{len .Chat.Messages}} entries</span><button type="button" id="details-toggle" hidden>Expand details</button><a href="#conversation-end">Jump to end ↓</a></div>{{end}}
 <div class="conversation">{{range rows .Chat.Messages}}

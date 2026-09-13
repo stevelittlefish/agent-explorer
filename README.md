@@ -14,6 +14,7 @@ export a chat to keep or share. It reads your files without modifying them or
 sending them to a service.
 
 - Supports **Codex, Claude Code, pi, and Cursor**; missing agent folders stay out of the UI.
+- Chat headers show recorded token usage and/or USD cost when available, including in HTML exports. Codex uses cumulative token totals; Claude Code uses assistant usage and the latest cost snapshot; pi sums assistant usage and costs. Repeated message IDs are counted once. Values reflect the available records, may be incomplete, and are not a subscription bill. No prices are inferred when cost is absent.
 - Groups consecutive tool calls behind one expandable line.
 - Uses a compact dark interface: blue for you, green for the agent.
 - Exports standalone **HTML**, readable **text**, or untouched **JSONL**.

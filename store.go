@@ -27,6 +27,7 @@ type Chat struct {
 	Updated                             time.Time
 	Messages                            []Message
 	Warnings                            int
+	Usage                               Usage
 }
 type cachedChat struct {
 	size     int64
@@ -129,6 +130,7 @@ func readChat(path, agent string, full bool) (Chat, error) {
 	hasResponses := false
 	titleFound := false
 	var turn codexTurn
+	var usage usageReader
 	messageKind := ""
 	add := func(role, text, stamp string, detail bool) {
 		if strings.TrimSpace(text) == "" {
@@ -158,6 +160,7 @@ func readChat(path, agent string, full bool) (Chat, error) {
 				c.Warnings++
 			} else {
 				messageKind = ""
+				usage.read(agent, r)
 				typ, stamp := str(r, "type"), str(r, "timestamp")
 				if agent == "codex" {
 					p := obj(r, "payload")
@@ -275,6 +278,7 @@ func readChat(path, agent string, full bool) (Chat, error) {
 			c.Project = "Unknown project"
 		}
 	}
+	c.Usage = usage.total
 	c.ProjectID = key(c.Project)
 	return c, nil
 }
