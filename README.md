@@ -57,8 +57,11 @@ Mac users are welcome to try building from source; bring your own ceremonial tur
 Requires Go 1.23 or newer:
 
 ```sh
-go run .
+./run.sh
 ```
+
+The launcher works from any working directory and forwards arguments, for example
+`./run.sh -addr 127.0.0.1:8087`. On Windows without Bash, use `go run .`.
 
 Each screen has its own URL and works without JavaScript. JavaScript adds list
 filtering, code copying, and an expand/collapse button for conversation details.

@@ -3,6 +3,7 @@
 - Use Go for the backend, server-rendered HTML templates, and plain JavaScript.
   Prefer the standard library; treat external dependencies as expensive.
 - Keep the app simple, with a unique URL for each page. No SPA or frontend framework.
+- Keep an executable `run.sh` in the repository root as the standard launcher.
 - Use the Phosphor design: dark forest backgrounds, restrained green accents,
   clear typography, and simple interactions. Keep the UI dark; clarity comes first.
 - Always "rawdog commit" directly to `main`; do not create feature branches or PRs.
