@@ -28,6 +28,25 @@ if (toggle && details.length) {
 }
 const index = document.querySelector('.index-disclosure');
 if (index && window.matchMedia('(max-width: 760px)').matches) index.open = false;
+const userMessages = [...document.querySelectorAll('.conversation > .message.user:not(.detail-message)')];
+userMessages.forEach((message, position) => {
+  const next = userMessages[position + 1];
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'next-user';
+  button.textContent = '↓';
+  button.title = next ? 'Next user message' : 'No more user messages';
+  button.setAttribute('aria-label', button.title);
+  button.disabled = !next;
+  message.tabIndex = -1;
+  message.querySelector('.speaker').firstChild.after(button);
+  if (next) {
+    button.addEventListener('click', () => {
+      next.focus({ preventScroll: true });
+      next.scrollIntoView({ block: 'start' });
+    });
+  }
+});
 if (navigator.clipboard && window.isSecureContext) {
   document.querySelectorAll('[data-copy]').forEach(button => {
     button.hidden = false;
