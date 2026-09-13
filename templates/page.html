@@ -28,7 +28,7 @@
 </details>
 </aside>
 {{end}}
-<main id="content" class="{{if .Chat}}reader{{else}}browse{{end}}">
+<main id="content" class="{{if .Chat}}reader{{else}}browse{{if .Agent}} browse-list{{end}}{{end}}">
 {{if .Chat}}
 <div class="page-heading"><div><h1>{{.Chat.Title}}</h1><p class="metadata"><span title="{{.Project}}">{{.Project}}</span><span>{{.AgentName}} · {{date .Chat.Updated}}</span></p></div>
 {{if not .Export}}<nav class="exports" aria-label="Export conversation"><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=html" aria-label="Export HTML">HTML <span aria-hidden="true">↓</span></a><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=txt" aria-label="Export text">TXT <span aria-hidden="true">↓</span></a><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=jsonl" aria-label="Export original JSONL">JSONL <span aria-hidden="true">↓</span></a></nav>{{end}}</div>
