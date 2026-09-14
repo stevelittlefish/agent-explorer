@@ -94,6 +94,31 @@ func TestStoreRefreshAndSymlink(t *testing.T) {
 	}
 }
 
+func TestStoreEvictsDeletedChats(t *testing.T) {
+	root := t.TempDir()
+	sessions := filepath.Join(root, "sessions")
+	one := filepath.Join(sessions, "one.jsonl")
+	two := filepath.Join(sessions, "two.jsonl")
+	writeRecords(t, one, map[string]any{"type": "user", "cwd": "/one", "message": map[string]any{"content": "One"}})
+	writeRecords(t, two, map[string]any{"type": "user", "cwd": "/two", "message": map[string]any{"content": "Two"}})
+	s := Store{Roots: map[string][]string{"claude": {sessions}}}
+	if c, err := s.List("claude"); err != nil || len(c) != 2 {
+		t.Fatal(c, err)
+	}
+	if len(s.cache) != 2 {
+		t.Fatalf("expected 2 cached chats, got %d", len(s.cache))
+	}
+	if err := os.Remove(two); err != nil {
+		t.Fatal(err)
+	}
+	if c, err := s.List("claude"); err != nil || len(c) != 1 {
+		t.Fatal(c, err)
+	}
+	if len(s.cache) != 1 {
+		t.Fatalf("stale cache entry not evicted, got %d", len(s.cache))
+	}
+}
+
 func TestToolCountsForBothAgents(t *testing.T) {
 	for _, agent := range []string{"codex", "claude"} {
 		t.Run(agent, func(t *testing.T) {

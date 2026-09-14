@@ -43,6 +43,14 @@ jobs:
           go-version: stable
           cache: false
 
+      - name: Format check
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "These files are not gofmt-clean:"
+            echo "$unformatted"
+            exit 1
+          fi
       - name: Test
         run: go test -race ./...
       - name: Vet

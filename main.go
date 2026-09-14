@@ -114,7 +114,11 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.URL.Path == "/static/style.css" || r.URL.Path == "/static/app.js" || r.URL.Path == "/static/favicon.svg" {
-		b, _ := assets.ReadFile(strings.TrimPrefix(r.URL.Path, "/"))
+		b, err := assets.ReadFile(strings.TrimPrefix(r.URL.Path, "/"))
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
 		if strings.HasSuffix(r.URL.Path, ".css") {
 			w.Header().Set("Content-Type", "text/css; charset=utf-8")
 		} else if strings.HasSuffix(r.URL.Path, ".svg") {

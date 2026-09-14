@@ -107,6 +107,7 @@ func conversationRows(messages []Message) []conversationRow {
 	}
 	return rows
 }
+
 // isChat reports whether a row is a visible chat message (a user or assistant
 // turn), as opposed to a condensable non-chat row such as tool activity or
 // reasoning.

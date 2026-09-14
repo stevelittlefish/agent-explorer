@@ -48,6 +48,7 @@ func (s *Store) List(agent string) ([]Chat, error) {
 		s.cache = make(map[string]cachedChat)
 	}
 	var chats []Chat
+	seen := make(map[string]bool)
 	for _, root := range s.Roots[agent] {
 		err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 			if os.IsNotExist(err) && path == root {
@@ -86,11 +87,25 @@ func (s *Store) List(agent string) ([]Chat, error) {
 				cached = cachedChat{info.Size(), info.ModTime(), chat}
 				s.cache[path] = cached
 			}
+			seen[path] = true
 			chats = append(chats, cached.chat)
 			return nil
 		})
 		if err != nil {
 			return nil, err
+		}
+	}
+	// Drop cached chats whose files have disappeared from this agent's roots,
+	// so the cache does not grow without bound as sessions are deleted.
+	for path := range s.cache {
+		if seen[path] {
+			continue
+		}
+		for _, root := range s.Roots[agent] {
+			if strings.HasPrefix(path, root+string(filepath.Separator)) {
+				delete(s.cache, path)
+				break
+			}
 		}
 	}
 	sort.Slice(chats, func(i, j int) bool {
