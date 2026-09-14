@@ -61,8 +61,10 @@ func displayStamp(value string) string {
 // Results stay with their calls but do not inflate the call count.
 type conversationRow struct {
 	Message
-	Tools []Message
-	Label string
+	Tools      []Message
+	Label      string
+	UserID     string // anchor id for a visible user message; empty otherwise
+	NextUserID string // anchor id of the following user message, for static navigation
 }
 
 func conversationRows(messages []Message) []conversationRow {
@@ -88,6 +90,20 @@ func conversationRows(messages []Message) []conversationRow {
 			noun += "s"
 		}
 		rows = append(rows, conversationRow{Tools: messages[start:i], Label: fmt.Sprintf("%d %s", count, noun)})
+	}
+	// Assign anchor ids to visible user messages and link each to the next one,
+	// so the HTML export can offer next-user navigation without JavaScript.
+	var userRows []int
+	for i, row := range rows {
+		if row.Tools == nil && !row.Detail && row.Role == "user" {
+			userRows = append(userRows, i)
+		}
+	}
+	for n, i := range userRows {
+		rows[i].UserID = fmt.Sprintf("user-%d", n+1)
+		if n+1 < len(userRows) {
+			rows[i].NextUserID = fmt.Sprintf("user-%d", n+2)
+		}
 	}
 	return rows
 }

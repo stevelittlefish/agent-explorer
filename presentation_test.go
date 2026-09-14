@@ -66,3 +66,26 @@ func TestConversationRows(t *testing.T) {
 		t.Fatal("empty conversation has rows")
 	}
 }
+
+func TestUserMessageNavigationAnchors(t *testing.T) {
+	rows := conversationRows([]Message{
+		{Role: "user", Text: "first"},
+		{Role: "assistant", Text: "reply"},
+		{Role: "user", Text: "hidden", Detail: true},
+		{Role: "user", Text: "second"},
+		{Role: "assistant", Text: "reply"},
+		{Role: "user", Text: "third"},
+	})
+	if rows[0].UserID != "user-1" || rows[0].NextUserID != "user-2" {
+		t.Fatalf("first user row: %+v", rows[0])
+	}
+	if rows[2].UserID != "" {
+		t.Fatal("detail user message should not get an anchor")
+	}
+	if rows[3].UserID != "user-2" || rows[3].NextUserID != "user-3" {
+		t.Fatalf("second user row: %+v", rows[3])
+	}
+	if rows[5].UserID != "user-3" || rows[5].NextUserID != "" {
+		t.Fatalf("last user row should have no next: %+v", rows[5])
+	}
+}

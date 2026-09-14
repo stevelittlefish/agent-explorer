@@ -75,7 +75,8 @@ button:hover { color: var(--accent); }
 .user .speaker { position: relative; color: var(--user); }
 .next-user { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-right: 6px; border: 1px solid var(--user-border); border-radius: 3px; color: var(--user); font: 14px/1 var(--mono); vertical-align: middle; }
 .next-user:hover:not(:disabled) { background: #1e3040; color: var(--ink); }
-.next-user:disabled { opacity: .35; cursor: default; }
+.next-user:disabled, .next-user[aria-hidden] { opacity: .35; cursor: default; }
+a.next-user { text-decoration: none; }
 .message-kind { display: block; width: fit-content; margin-top: 4px; padding: 1px 5px; border: 1px solid var(--user-border); border-radius: 3px; color: var(--user); font: 10px/1.6 var(--mono); text-transform: none; }
 .message-body { border-left: 3px solid var(--agent-border); padding: 8px 14px; min-width: 0; background: #1a2317; border-radius: 0 3px 3px 0; }
 .assistant .speaker { color: var(--accent); }
