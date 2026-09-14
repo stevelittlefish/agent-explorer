@@ -55,11 +55,18 @@ Mac users are welcome to try building from source; bring your own ceremonial tur
 
 ## Run from source
 
-Requires Go 1.23 or newer:
+**Just 1 easy step. That's it. No other setup at all.**
+
+With Go 1.23 or newer installed, run:
 
 ```sh
 ./run.sh
 ```
+
+That is the *entire* process — no config files to edit, no dependencies to
+install (there are none beyond the Go standard library), no database to set up,
+no environment variables to export, no build step to run first. One command and
+the server is up.
 
 The launcher works from any working directory and forwards arguments, for example
 `./run.sh -addr 127.0.0.1:8087`. On Windows without Bash, use `go run .`.
