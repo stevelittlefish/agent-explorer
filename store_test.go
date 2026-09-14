@@ -94,6 +94,34 @@ func TestStoreRefreshAndSymlink(t *testing.T) {
 	}
 }
 
+func TestClaudeSystemPromptAttachment(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "chat.jsonl")
+	writeRecords(t, path,
+		map[string]any{"type": "user", "cwd": "/work", "message": map[string]any{"content": "Question"}},
+		map[string]any{"type": "attachment", "attachment": map[string]any{"type": "prompt_snapshot", "systemPrompt": []any{"You are helpful.", "Follow the rules."}}},
+		map[string]any{"type": "attachment", "attachment": map[string]any{"type": "environment"}},
+		map[string]any{"type": "assistant", "message": map[string]any{"content": []any{map[string]any{"type": "text", "text": "Answer"}}}})
+	c, err := readChat(path, "claude", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var sys *Message
+	for i := range c.Messages {
+		if c.Messages[i].Role == "system prompt" {
+			sys = &c.Messages[i]
+		}
+	}
+	if sys == nil {
+		t.Fatal("system prompt attachment not surfaced")
+	}
+	if !sys.Detail {
+		t.Fatal("system prompt should be a collapsed detail row")
+	}
+	if sys.Text != "You are helpful.\nFollow the rules." {
+		t.Fatalf("unexpected system prompt text: %q", sys.Text)
+	}
+}
+
 func TestStoreEvictsDeletedChats(t *testing.T) {
 	root := t.TempDir()
 	sessions := filepath.Join(root, "sessions")

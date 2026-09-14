@@ -264,6 +264,22 @@ func readChat(path, agent string, full bool) (Chat, error) {
 							c.Title = t
 							titleFound = true
 						}
+					case "attachment":
+						// Claude Code stores the system prompt as a prompt_snapshot
+						// attachment, not as a chat message. Surface it as a collapsed
+						// detail so it is available without dominating the transcript.
+						a := obj(r, "attachment")
+						if str(a, "type") == "prompt_snapshot" {
+							var parts []string
+							if items, ok := a["systemPrompt"].([]any); ok {
+								for _, item := range items {
+									if s, ok := item.(string); ok {
+										parts = append(parts, s)
+									}
+								}
+							}
+							add("system prompt", strings.Join(parts, "\n"), stamp, true)
+						}
 					}
 				}
 			}
