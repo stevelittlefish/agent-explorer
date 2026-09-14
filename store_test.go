@@ -128,6 +128,24 @@ func TestClaudeSystemPromptAttachment(t *testing.T) {
 	}
 }
 
+func TestCodexSystemPrompt(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "chat.jsonl")
+	writeRecords(t, path,
+		map[string]any{"type": "session_meta", "payload": map[string]any{"cwd": "/work", "base_instructions": map[string]any{"text": "You are Codex."}}},
+		map[string]any{"type": "response_item", "payload": map[string]any{"type": "message", "role": "user", "content": []any{map[string]any{"type": "input_text", "text": "Hello"}}}},
+		map[string]any{"type": "response_item", "payload": map[string]any{"type": "message", "role": "assistant", "content": []any{map[string]any{"type": "output_text", "text": "Hi"}}}})
+	c, err := readChat(path, "codex", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(c.Messages) == 0 || c.Messages[0].Role != "system prompt" || !c.Messages[0].Detail {
+		t.Fatalf("system prompt should be a leading detail row: %+v", c.Messages)
+	}
+	if c.Messages[0].Text != "You are Codex." {
+		t.Fatalf("unexpected system prompt text: %q", c.Messages[0].Text)
+	}
+}
+
 func TestStoreEvictsDeletedChats(t *testing.T) {
 	root := t.TempDir()
 	sessions := filepath.Join(root, "sessions")

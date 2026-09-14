@@ -185,6 +185,12 @@ func readChat(path, agent string, full bool) (Chat, error) {
 						if cwd := str(p, "cwd"); cwd != "" {
 							c.Project = cwd
 						}
+						// Codex stores its system prompt as base_instructions here,
+						// not as a message. Surface it like the other agents' prompts.
+						if text := str(obj(p, "base_instructions"), "text"); text != lastSystemPrompt {
+							lastSystemPrompt = text
+							add("system prompt", text, stamp, true)
+						}
 					case "event_msg":
 						turn.event(p)
 						role := ""
