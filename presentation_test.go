@@ -67,6 +67,26 @@ func TestConversationRows(t *testing.T) {
 	}
 }
 
+func TestNonChatSummary(t *testing.T) {
+	rows := conversationRows([]Message{
+		{Role: "reasoning", Text: "think", Detail: true},
+		{Role: "tool", Text: "a", Detail: true},
+		{Role: "tool", Text: "b", Detail: true},
+		{Role: "tool", Text: "r", Detail: true, ToolResult: true},
+	})
+	if got := nonChatSummary(rows); got != "2 tool calls, 1 reasoning block" {
+		t.Fatalf("summary = %q", got)
+	}
+	single := conversationRows([]Message{{Role: "tool", Text: "x", Detail: true}})
+	if got := nonChatSummary(single); got != "1 tool call" {
+		t.Fatalf("singular summary = %q", got)
+	}
+	results := conversationRows([]Message{{Role: "tool", Text: "r", Detail: true, ToolResult: true}})
+	if got := nonChatSummary(results); got != "1 tool result" {
+		t.Fatalf("result-only summary = %q", got)
+	}
+}
+
 func TestUserMessageNavigationAnchors(t *testing.T) {
 	rows := conversationRows([]Message{
 		{Role: "user", Text: "first"},

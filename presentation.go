@@ -107,4 +107,61 @@ func conversationRows(messages []Message) []conversationRow {
 	}
 	return rows
 }
+// isChat reports whether a row is a visible chat message (a user or assistant
+// turn), as opposed to a condensable non-chat row such as tool activity or
+// reasoning.
+func (r conversationRow) isChat() bool {
+	return r.Tools == nil && !r.Detail && (r.Role == "user" || r.Role == "assistant")
+}
+
+// nonChatSummary describes a run of consecutive non-chat rows in a few words,
+// e.g. "5 tool calls, 2 reasoning blocks", for the condensed text export.
+func nonChatSummary(run []conversationRow) string {
+	var calls, results, reasoning int
+	other := map[string]int{}
+	var otherOrder []string
+	for _, r := range run {
+		if r.Tools != nil {
+			for _, m := range r.Tools {
+				if m.ToolResult {
+					results++
+				} else {
+					calls++
+				}
+			}
+			continue
+		}
+		switch r.Role {
+		case "reasoning":
+			reasoning++
+		default:
+			if other[r.Role] == 0 {
+				otherOrder = append(otherOrder, r.Role)
+			}
+			other[r.Role]++
+		}
+	}
+	var parts []string
+	if calls > 0 {
+		parts = append(parts, count(calls, "tool call"))
+	}
+	if results > 0 && calls == 0 {
+		parts = append(parts, count(results, "tool result"))
+	}
+	if reasoning > 0 {
+		parts = append(parts, count(reasoning, "reasoning block"))
+	}
+	for _, role := range otherOrder {
+		parts = append(parts, count(other[role], role+" message"))
+	}
+	return strings.Join(parts, ", ")
+}
+
+func count(n int, noun string) string {
+	if n != 1 {
+		noun += "s"
+	}
+	return fmt.Sprintf("%d %s", n, noun)
+}
+
 func proseText(text string) string { return strings.Trim(text, "\r\n") }

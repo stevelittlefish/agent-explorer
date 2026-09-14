@@ -210,7 +210,11 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Unknown export format", 400)
 				return
 			}
-			w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.%s"`, chat.ID, format))
+			filename := chat.ID
+			if format == "txt" && r.URL.Query().Get("condense") != "" {
+				filename += "-condensed"
+			}
+			w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.%s"`, filename, format))
 			switch format {
 			case "jsonl":
 				w.Header().Set("Content-Type", "application/x-ndjson")
@@ -218,6 +222,27 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			case "txt":
 				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 				fmt.Fprintf(w, "%s\n%s · %s\n\n", chat.Title, p.AgentName, chat.Project)
+				if r.URL.Query().Get("condense") != "" {
+					rows := conversationRows(chat.Messages)
+					for i := 0; i < len(rows); {
+						if rows[i].isChat() {
+							m := rows[i].Message
+							role := m.Role
+							if m.Kind != "" {
+								role += " [" + m.Kind + "]"
+							}
+							fmt.Fprintf(w, "--- %s %s ---\n%s\n\n", role, m.Time, m.Text)
+							i++
+							continue
+						}
+						start := i
+						for i < len(rows) && !rows[i].isChat() {
+							i++
+						}
+						fmt.Fprintf(w, "(%s)\n\n", nonChatSummary(rows[start:i]))
+					}
+					break
+				}
 				for _, m := range chat.Messages {
 					role := m.Role
 					if m.Kind != "" {
