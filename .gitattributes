@@ -1,0 +1,16 @@
+# Keep source checked out with LF on every platform. Without this, the
+# Windows CI runner checks Go files out with CRLF and `gofmt -l` reports
+# every file as not gofmt-clean.
+* text=auto eol=lf
+
+*.go text eol=lf
+*.html text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
