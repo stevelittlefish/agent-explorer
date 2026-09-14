@@ -147,6 +147,7 @@ func readChat(path, agent string, full bool) (Chat, error) {
 	var turn codexTurn
 	var usage usageReader
 	messageKind := ""
+	lastSystemPrompt := ""
 	add := func(role, text, stamp string, detail bool) {
 		if strings.TrimSpace(text) == "" {
 			return
@@ -278,7 +279,12 @@ func readChat(path, agent string, full bool) (Chat, error) {
 									}
 								}
 							}
-							add("system prompt", strings.Join(parts, "\n"), stamp, true)
+							// Claude Code records the prompt twice at startup with
+							// identical text; skip a snapshot that repeats the last one.
+							if text := strings.Join(parts, "\n"); text != lastSystemPrompt {
+								lastSystemPrompt = text
+								add("system prompt", text, stamp, true)
+							}
 						}
 					}
 				}
@@ -296,6 +302,19 @@ func readChat(path, agent string, full bool) (Chat, error) {
 			messageKind = m.Kind
 			add(m.Role, m.Text, m.Time, false)
 		}
+	}
+	// Show the system prompt first, ahead of the conversation, even though it is
+	// not recorded first. It reads more naturally as the setup for what follows.
+	if full {
+		var sys, rest []Message
+		for _, m := range c.Messages {
+			if m.Role == "system prompt" {
+				sys = append(sys, m)
+			} else {
+				rest = append(rest, m)
+			}
+		}
+		c.Messages = append(sys, rest...)
 	}
 	if c.Project == "" {
 		if agent == "cursor" {

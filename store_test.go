@@ -96,23 +96,29 @@ func TestStoreRefreshAndSymlink(t *testing.T) {
 
 func TestClaudeSystemPromptAttachment(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "chat.jsonl")
+	prompt := map[string]any{"type": "prompt_snapshot", "systemPrompt": []any{"You are helpful.", "Follow the rules."}}
 	writeRecords(t, path,
 		map[string]any{"type": "user", "cwd": "/work", "message": map[string]any{"content": "Question"}},
-		map[string]any{"type": "attachment", "attachment": map[string]any{"type": "prompt_snapshot", "systemPrompt": []any{"You are helpful.", "Follow the rules."}}},
+		map[string]any{"type": "attachment", "attachment": prompt},
+		map[string]any{"type": "attachment", "attachment": map[string]any{"type": "prompt_snapshot", "systemPrompt": []any{"You are helpful.", "Follow the rules."}, "tools": []any{"Read"}}},
 		map[string]any{"type": "attachment", "attachment": map[string]any{"type": "environment"}},
 		map[string]any{"type": "assistant", "message": map[string]any{"content": []any{map[string]any{"type": "text", "text": "Answer"}}}})
 	c, err := readChat(path, "claude", true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var sys *Message
-	for i := range c.Messages {
-		if c.Messages[i].Role == "system prompt" {
-			sys = &c.Messages[i]
+	var sysCount int
+	for _, m := range c.Messages {
+		if m.Role == "system prompt" {
+			sysCount++
 		}
 	}
-	if sys == nil {
-		t.Fatal("system prompt attachment not surfaced")
+	if sysCount != 1 {
+		t.Fatalf("expected the duplicated system prompt to be deduped to 1, got %d", sysCount)
+	}
+	sys := c.Messages[0]
+	if sys.Role != "system prompt" {
+		t.Fatalf("system prompt should be first, got role %q", sys.Role)
 	}
 	if !sys.Detail {
 		t.Fatal("system prompt should be a collapsed detail row")
