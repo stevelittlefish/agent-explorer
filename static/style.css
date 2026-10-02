@@ -187,7 +187,13 @@ footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16
 
 .cost-summary { margin-top: 2px; }
 .cost-warning { margin: 8px 0 0; padding: 6px 10px; border-left: 3px solid #c9a95f; background: #211f15; color: #e6d3a3; font: 12px/1.7 var(--mono); overflow-wrap: anywhere; }
-.cost-note { margin-top: 4px; }
+.cost-help { display: inline-block; position: relative; margin-left: 10px; vertical-align: middle; }
+.cost-help > summary { list-style: none; width: 18px; height: 18px; border: 1px solid var(--line); border-radius: 50%; text-align: center; color: var(--muted); font: 11px/16px var(--mono); }
+.cost-help > summary::-webkit-details-marker { display: none; }
+.cost-help > summary:hover, .cost-help[open] > summary { color: var(--accent); border-color: var(--accent); }
+.cost-help-body { position: absolute; z-index: 3; top: 26px; left: -8px; width: min(560px, 70vw); padding: 10px 14px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); color: var(--muted); font: 12px/1.7 var(--mono); box-shadow: 0 8px 24px rgb(0 0 0 / .45); }
+.cost-help-body p { margin: 0; }
+.cost-help-body p + p { margin-top: 8px; }
 .price-form { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 10px 0 0; color: var(--muted); font: 12px/1.8 var(--mono); }
 .price-form select { margin-left: 6px; padding: 3px 6px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 3px; font: inherit; }
 .price-form select:focus { border-color: var(--accent); }
@@ -206,5 +212,5 @@ footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16
 .transcript-detail summary .row-cost-wrap span { margin-left: 0; text-transform: none; }
 .cost-detail { margin: 0; padding: 6px 12px; border-bottom: 1px solid var(--line); color: var(--muted); font: 11px/1.8 var(--mono); }
 .cache-event p { display: flex; justify-content: space-between; gap: 12px; margin: 0; padding: 6px 12px; border: 1px dashed #4d5f45; border-radius: 4px; color: var(--muted); font: 12px/1.8 var(--mono); overflow-wrap: anywhere; }
-@media (max-width: 760px) { .speaker .row-cost-wrap { margin: 0; } }
+@media (max-width: 760px) { .speaker .row-cost-wrap { margin: 0; } .cost-help { display: block; margin: 6px 0 0; } .cost-help-body { position: static; width: auto; margin-top: 6px; } }
 @media print { .price-form { display: none; } }
