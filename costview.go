@@ -47,6 +47,11 @@ type RowCost struct {
 
 func (c RowCost) Label() string { return money(c.Total) }
 
+// Made and Repeated split the total: the cost when the row was produced
+// (including any subagent it ran) and what later calls paid to carry it.
+func (c RowCost) Made() string     { return money(c.Direct + c.Subagent) }
+func (c RowCost) Repeated() string { return money(c.Carried) }
+
 // Detail explains where a row's cost came from.
 func (c RowCost) Detail() string {
 	parts := []string{money(c.Direct) + " when made"}
