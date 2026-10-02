@@ -65,6 +65,8 @@ type conversationRow struct {
 	Label      string
 	UserID     string // anchor id for a visible user message; empty otherwise
 	NextUserID string // anchor id of the following user message, for static navigation
+	Anchor     string // anchor id for any row: UserID, or row-N
+	Price      *RowCost
 }
 
 func conversationRows(messages []Message) []conversationRow {
@@ -105,6 +107,12 @@ func conversationRows(messages []Message) []conversationRow {
 			rows[i].NextUserID = fmt.Sprintf("user-%d", n+2)
 		}
 	}
+	for i := range rows {
+		rows[i].Anchor = rows[i].UserID
+		if rows[i].Anchor == "" {
+			rows[i].Anchor = fmt.Sprintf("row-%d", i+1)
+		}
+	}
 	return rows
 }
 
@@ -133,6 +141,7 @@ func nonChatSummary(run []conversationRow) string {
 			continue
 		}
 		switch r.Role {
+		case "cache":
 		case "reasoning":
 			reasoning++
 		default:

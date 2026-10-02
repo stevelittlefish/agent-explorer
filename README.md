@@ -14,7 +14,8 @@ export a chat to keep or share. It reads your files without modifying them or
 sending them to a service.
 
 - Supports **Codex, Claude Code, pi, and Cursor**; missing agent folders stay out of the UI.
-- Chat headers show recorded token usage and/or USD cost when available, including in HTML exports. Codex uses cumulative token totals; Claude Code uses assistant usage and the latest cost snapshot; pi sums assistant usage and costs. Repeated message IDs are counted once. Values reflect the available records, may be incomplete, and are not a subscription bill. No prices are inferred when cost is absent.
+- Chat headers show recorded token usage and/or USD cost when available, including in HTML exports. Codex uses cumulative token totals; Claude Code uses assistant usage and the latest cost snapshot; pi sums assistant usage and costs. Repeated message IDs are counted once. Values reflect the available records, may be incomplete, and are not a subscription bill. Chat lists show the recorded cost where a session has one.
+- **Claude Code cost analysis:** every row, tool-call group and prompt-cache rebuild gets an estimated cost, split into what it cost when made and what later calls paid to re-read it. Sessions are priced at current API list prices as a chosen model (Opus 5.5 by default; change it with **Price as**), so old sessions show what the same workflow would cost today. The header compares the estimate with Claude Code's recorded cost and warns when they disagree. Prices live in [`prices.go`](prices.go); to refresh them, ask Claude to "update the prices".
 - Groups consecutive tool calls behind one expandable line.
 - Uses a compact dark interface: blue for you, green for the agent.
 - Exports standalone **HTML**, readable **text**, or untouched **JSONL**.

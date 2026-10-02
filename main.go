@@ -16,7 +16,7 @@ import (
 
 //go:embed templates/*.html static/*
 var assets embed.FS
-var pages = template.Must(template.New("").Funcs(template.FuncMap{"rows": conversationRows, "prose": proseText, "base": filepath.Base, "blocks": textBlocks, "stamp": displayStamp, "date": func(t time.Time) string { return t.Local().Format("02 Jan 2006, 15:04") }}).ParseFS(assets, "templates/*.html"))
+var pages = template.Must(template.New("").Funcs(template.FuncMap{"rows": conversationRows, "prose": proseText, "base": filepath.Base, "blocks": textBlocks, "stamp": displayStamp, "pricesUpdated": func() string { return pricesUpdated }, "date": func(t time.Time) string { return t.Local().Format("02 Jan 2006, 15:04") }}).ParseFS(assets, "templates/*.html"))
 
 type Project struct {
 	ID, Name string
@@ -34,6 +34,8 @@ type Page struct {
 	Projects                                    []Project
 	Chats                                       []Chat
 	Chat                                        *Chat
+	Rows                                        []conversationRow
+	Cost                                        *CostView
 	Export                                      bool
 }
 type App struct {
@@ -201,6 +203,8 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		chat.Updated = c.Updated
 		p.Chat = &chat
 		p.Title = chat.Title
+		p.Rows = conversationRows(chat.Messages)
+		p.Cost = priceRows(p.Rows, &chat, pricingFor(r.URL.Query().Get("price")))
 		if len(parts) == 6 {
 			if parts[5] != "export" {
 				http.NotFound(w, r)
@@ -243,11 +247,16 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						for i < len(rows) && !rows[i].isChat() {
 							i++
 						}
-						fmt.Fprintf(w, "(%s)\n\n", nonChatSummary(rows[start:i]))
+						if summary := nonChatSummary(rows[start:i]); summary != "" {
+							fmt.Fprintf(w, "(%s)\n\n", summary)
+						}
 					}
 					break
 				}
 				for _, m := range chat.Messages {
+					if m.Role == "cache" {
+						continue
+					}
 					role := m.Role
 					if m.Kind != "" {
 						role += " [" + m.Kind + "]"

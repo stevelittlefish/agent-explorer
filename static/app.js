@@ -61,3 +61,7 @@ if (navigator.clipboard && window.isSecureContext) {
     });
   });
 }
+document.querySelectorAll('[data-autosubmit]').forEach(select => {
+  select.form.querySelector('button[type="submit"]').hidden = true;
+  select.addEventListener('change', () => select.form.submit());
+});

@@ -21,6 +21,7 @@ func (u Usage) TokenLabel() string {
 	}
 	return s
 }
+func (u Usage) ShortCost() string { return money(u.Cost) }
 func (u Usage) CostLabel() string {
 	if u.Cost > 0 && u.Cost < .0001 {
 		return "< $0.0001 USD"
@@ -49,6 +50,8 @@ func tokens(m map[string]any, total string, parts ...string) Usage {
 type usageReader struct {
 	total    Usage
 	messages map[string]Usage
+	recorded map[string]RecordedModel
+	since    float64 // cost-state startTime, Unix ms
 }
 
 func (s *usageReader) read(agent string, r map[string]any) {
@@ -72,6 +75,15 @@ func (s *usageReader) read(agent string, r map[string]any) {
 		if str(r, "type") == "cost-state" {
 			if n, ok := number(r, "totalCostUSD"); ok {
 				s.total.Cost, s.total.HasCost = n, true
+			}
+			s.since, _ = number(r, "startTime")
+			if models := obj(r, "modelUsage"); models != nil {
+				s.recorded = map[string]RecordedModel{}
+				for model, v := range models {
+					m, _ := v.(map[string]any)
+					get := func(k string) float64 { n, _ := number(m, k); return n }
+					s.recorded[model] = RecordedModel{get("inputTokens"), get("outputTokens"), get("cacheReadInputTokens"), get("cacheCreationInputTokens"), get("webSearchRequests"), get("costUSD")}
+				}
 			}
 		}
 		if str(r, "type") != "assistant" {

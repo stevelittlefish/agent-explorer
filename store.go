@@ -21,6 +21,7 @@ type Message struct {
 	Kind             string
 	Detail           bool
 	ToolResult       bool
+	Cost             *ItemCost // Claude Code only; see cost.go
 }
 type Chat struct {
 	ID, ProjectID, Project, Title, Path string
@@ -28,6 +29,9 @@ type Chat struct {
 	Messages                            []Message
 	Warnings                            int
 	Usage                               Usage
+	Recorded                            map[string]RecordedModel // Claude Code's per-model tally
+	RecordedSince                       time.Time                // Claude Code's tally restarts when a session is resumed
+	Costs                               *SessionCost             // per-row attribution, full reads only
 }
 type cachedChat struct {
 	size     int64
@@ -146,6 +150,10 @@ func readChat(path, agent string, full bool) (Chat, error) {
 	titleFound := false
 	var turn codexTurn
 	var usage usageReader
+	var costs *costTracker
+	if full && agent == "claude" {
+		costs = newCostTracker()
+	}
 	messageKind := ""
 	lastSystemPrompt := ""
 	add := func(role, text, stamp string, detail bool) {
@@ -255,7 +263,24 @@ func readChat(path, agent string, full bool) (Chat, error) {
 						if typ == "user" && str(r, "promptSource") == "queued" {
 							messageKind = "Queued"
 						}
+						tracked := costs != nil && r["isSidechain"] != true
+						if tracked && typ == "assistant" {
+							costs.assistant(r, &c.Messages, stamp)
+						}
+						from := len(c.Messages)
 						readContent(p["content"], typ, stamp, add)
+						if tracked {
+							costs.added(c.Messages, from, len(c.Messages), typ == "assistant")
+							costs.subagent(r, c.Messages, from)
+						}
+					case "system":
+						if costs != nil && str(r, "subtype") == "compact_boundary" {
+							costs.boundary = true
+							costs.cost.Compactions++
+						}
+						if costs != nil && str(r, "subtype") == "away_summary" {
+							costs.cost.Away++
+						}
 					case "summary":
 						if t := str(r, "summary"); t != "" {
 							c.Title = short(t)
@@ -289,7 +314,11 @@ func readChat(path, agent string, full bool) (Chat, error) {
 							// identical text; skip a snapshot that repeats the last one.
 							if text := strings.Join(parts, "\n"); text != lastSystemPrompt {
 								lastSystemPrompt = text
+								from := len(c.Messages)
 								add("system prompt", text, stamp, true)
+								if costs != nil {
+									costs.added(c.Messages, from, len(c.Messages), false)
+								}
 							}
 						}
 					}
@@ -308,6 +337,9 @@ func readChat(path, agent string, full bool) (Chat, error) {
 			messageKind = m.Kind
 			add(m.Role, m.Text, m.Time, false)
 		}
+	}
+	if costs != nil {
+		c.Costs = costs.finish(c.Messages, path)
 	}
 	// Show the system prompt first, ahead of the conversation, even though it is
 	// not recorded first. It reads more naturally as the setup for what follows.
@@ -335,6 +367,10 @@ func readChat(path, agent string, full bool) (Chat, error) {
 		}
 	}
 	c.Usage = usage.total
+	c.Recorded = usage.recorded
+	if usage.since > 0 {
+		c.RecordedSince = time.UnixMilli(int64(usage.since))
+	}
 	c.ProjectID = key(c.Project)
 	return c, nil
 }
