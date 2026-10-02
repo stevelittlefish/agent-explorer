@@ -88,6 +88,7 @@ func codexOutput(m Message) bool {
 // replay runs the tracker over msgs in call order and returns the rows with
 // any cache rebuild rows inserted where they happened.
 func (x *codexCosts) replay(t *costTracker, msgs []Message) []Message {
+	t.rebuildMinimum = codexRebuildMinimum
 	x.rows(msgs)
 	// Split row ranges into single rows, then move each call back to the start
 	// of the latest run of output rows not yet claimed by a call.

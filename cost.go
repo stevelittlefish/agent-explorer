@@ -82,7 +82,13 @@ type timedUse struct {
 	Compacted, Rebuilt bool
 }
 
-const rebuildMinimum = 1024 // tokens; smaller shortfalls are normal cache-boundary noise
+// Shortfalls in the cached prefix smaller than this are normal cache-boundary
+// noise, not a rebuild. OpenAI's cache routinely stops a block over 1024
+// tokens short of the previous prompt, so Codex needs a wider margin.
+const (
+	rebuildMinimum      = 1024
+	codexRebuildMinimum = 2048
+)
 
 type apiCall struct {
 	model                        string
@@ -106,6 +112,7 @@ type costTracker struct {
 	// toolsChanged records a change to the available tools since the last
 	// call; mcpChanged that an MCP server's tools or instructions changed.
 	toolsChanged, mcpChanged bool
+	rebuildMinimum           float64
 	sysPrompt                int
 	subagents                map[int]string // tool result row -> subagent id
 	lastTime                 time.Time
@@ -113,7 +120,7 @@ type costTracker struct {
 }
 
 func newCostTracker() *costTracker {
-	return &costTracker{byID: map[string]int{}, segs: []segment{{}}, sysPrompt: -1, subagents: map[int]string{},
+	return &costTracker{byID: map[string]int{}, segs: []segment{{}}, sysPrompt: -1, subagents: map[int]string{}, rebuildMinimum: rebuildMinimum,
 		cost: SessionCost{Calls: map[string]int{}, Writes: map[string][2]float64{}}}
 }
 
@@ -165,7 +172,7 @@ func (t *costTracker) call(id string, c apiCall, msgs *[]Message, stamp string) 
 		c.prevCtx = t.calls[len(t.calls)-1].ctx()
 		if t.boundary || c.ctx()+rebuildMinimum < c.prevCtx {
 			c.epoch = true
-		} else if c.read+rebuildMinimum < c.prevCtx {
+		} else if c.read+t.rebuildMinimum < c.prevCtx {
 			cause := Message{Role: "cache", Time: stamp}
 			again := "written again"
 			if c.w5+c.w1h == 0 {

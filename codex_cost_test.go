@@ -8,8 +8,9 @@ import (
 	"testing"
 )
 
-// A three-call Codex session: a tool call, a reply, and a reply after the
-// prompt cache missed. Newer Codex writes a token_usage_record straight after
+// A three-call Codex session: a tool call, a reply whose cached prefix falls
+// the usual block short (not a rebuild), and a reply after the prompt cache
+// missed. Newer Codex writes a token_usage_record straight after
 // each call's output; older Codex only a token_count event, after the tool
 // output that follows, sometimes repeated.
 func codexSession(records bool) []string {
@@ -25,7 +26,7 @@ func codexSession(records bool) []string {
 	msg := func(role, text string) string {
 		return fmt.Sprintf(`{"type":"response_item","timestamp":"2026-10-01T10:00:00Z","payload":{"type":"message","role":%q,"content":[{"type":"input_text","text":%q}]}}`, role, text)
 	}
-	first, second, third := usage(10000, 0, 100), usage(10200, 10000, 50), usage(10300, 0, 20)
+	first, second, third := usage(10000, 0, 100), usage(10200, 8900, 50), usage(10300, 0, 20)
 	lines := []string{
 		`{"type":"session_meta","payload":{"cwd":"/work","base_instructions":{"text":"You are Codex."}}}`,
 		`{"type":"turn_context","payload":{"model":"gpt-6-sol"}}`,
@@ -43,7 +44,7 @@ func codexSession(records bool) []string {
 }
 
 // Every call at GPT-6.1 Sol prices: $2 input, $0.10 cached, $10 output.
-const codexTotal = (20000 + 1000 + 400 + 1000 + 500 + 20600 + 200) / 1e6
+const codexTotal = (20000 + 1000 + 2600 + 890 + 500 + 20600 + 200) / 1e6
 
 func TestCodexCosts(t *testing.T) {
 	for _, records := range []bool{true, false} {

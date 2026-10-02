@@ -219,9 +219,16 @@ func buildAnalysis(rows []conversationRow, chat *Chat, v *CostView, agent string
 		if (t.Buckets[0] == bSearch || t.Buckets[0] == bWrite5m) && cost == 0 {
 			continue
 		}
-		names, colors, costs = append(names, t.Name), append(colors, t.Color), append(costs, cost)
+		name := t.Name
+		if agent == "codex" && t.Buckets[0] == bInput {
+			name = "Uncached input (new context)"
+		}
+		names, colors, costs = append(names, name), append(colors, t.Color), append(costs, cost)
 	}
 	a.Types = Donut{ID: "types", Title: "Cost by token type", Desc: "What the API charged for: generating output, writing context to the cache, reading it back, and input sent uncached.", Total: total, Slices: slices(names, colors, costs)}
+	if agent == "codex" {
+		a.Types.Desc = "What the API charged for: generating output, reading cached context, and sending context uncached. OpenAI has no cache write charge: new context each call is billed as uncached input, where Claude Code bills it as a cache write."
+	}
 
 	// The costliest rows, coloured by the category that dominates each.
 	for _, r := range rows {
