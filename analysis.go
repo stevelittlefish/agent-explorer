@@ -115,16 +115,17 @@ type Donut struct {
 	Slices                 []Slice
 }
 
-// Token types use one green ramp, light to dark, so their colours never
-// echo the kinds above; web search is neutral grey.
+// Token types get distinct hues, ordered so that neighbouring slices,
+// including the last and first, stay distinguishable on the dark panel.
+// Web search is neutral grey.
 var tokenTypes = []struct {
 	Name, Color string
 	Buckets     []int
 }{
-	{"Output (write)", "#dcefc8", []int{bOutput}},
-	{"Cache write", "#a9d47f", []int{bWrite5m, bWrite1h}},
-	{"Cache read", "#6f9f45", []int{bRead}},
-	{"Uncached input (read)", "#45702a", []int{bInput}},
+	{"Output (write)", "#3987e5", []int{bOutput}},
+	{"Cache write", "#c98500", []int{bWrite5m, bWrite1h}},
+	{"Cache read", "#9085e9", []int{bRead}},
+	{"Uncached input (read)", "#199e70", []int{bInput}},
 	{"Web search", "#6f7a70", []int{bSearch}},
 }
 
