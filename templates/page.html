@@ -94,7 +94,7 @@
 <dt>Other</dt><dd>Tokens no visible row could take, such as calls that only produced hidden thinking.</dd>
 </dl>{{end}}</details></section>
 <section class="chart-card" aria-labelledby="types-title">{{template "donut" $a.Types}}
-<p class="chart-desc donut-note">Output is priced highest per token, but cache reads are re-paid on every call, so they often add up to more.</p></section>
+<p class="chart-desc donut-note">Output is priced highest per token, but cache reads are re-paid on every call, so they often add up to more.</p>{{if ne .Agent "codex"}}<p class="chart-desc donut-note">Cache write includes the input tokens: new context is written to the cache as it is sent, so it is billed at the cache write rate, not as uncached input.</p>{{end}}</section>
 <section class="chart-card chart-wide" aria-labelledby="top-title"><h2 id="top-title">Costliest rows</h2><p class="chart-desc">Total, then (when made / re-read later). Colour shows the kind.</p>
 <ol class="top-rows">{{range $a.Top}}<li title="{{.Category}}: {{.Cost.Detail}}"><span class="top-label">{{if $.Export}}{{.Label}}{{else}}<a href="{{$.ChatURL}}?price={{$c.Main.Model}}#{{.Anchor}}">{{.Label}}</a>{{end}}</span><span class="top-bar"><span style="width: {{.Width}}%; background: {{.Color}}"></span></span><span class="top-value">{{.Cost.Label}} <span class="cost-split">({{.Cost.Made}}/{{.Cost.Repeated}})</span></span></li>{{end}}</ol></section>
 </div>

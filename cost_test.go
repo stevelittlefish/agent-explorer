@@ -246,7 +246,8 @@ func TestAnalysisCategoriesAndPage(t *testing.T) {
 	for _, s := range a.Types.Slices {
 		typed += s.Cost
 	}
-	if !near(typed, v.Total) || len(a.Types.Slices) != 4 || a.Types.Slices[2].Name != "Cache read" || a.Types.Slices[2].Cost <= 0 {
+	// Uncached input rounds to 0.0% here, so it is left out.
+	if math.Abs(typed-v.Total) > v.Total*0.001 || len(a.Types.Slices) != 3 || a.Types.Slices[2].Name != "Cache read" || a.Types.Slices[2].Cost <= 0 {
 		t.Fatalf("token types %+v add up to %v, want %v", a.Types.Slices, typed, v.Total)
 	}
 	if a.Calls != 6 || len(a.Context.Hits) != 6 || len(a.Context.Markers) != 1 {

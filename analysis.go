@@ -133,8 +133,8 @@ var tokenTypes = []struct {
 
 const donutRadius = 70.0
 
-// slices lays out donut slices for the given costs, keeping zero-cost ones
-// for the table.
+// slices lays out donut slices for the given costs, leaving out any that
+// round to 0.0%, so neither the donut nor its table lists them.
 func slices(names, colors []string, costs []float64) []Slice {
 	total := 0.0
 	for _, c := range costs {
@@ -149,6 +149,10 @@ func slices(names, colors []string, costs []float64) []Slice {
 			s.Share = costs[i] / total
 		}
 		s.Percent = fmt.Sprintf("%.1f%%", s.Share*100)
+		if s.Percent == "0.0%" {
+			offset += s.Share * circ
+			continue
+		}
 		if s.Share > 0 {
 			length := s.Share * circ
 			gap := math.Min(2, length/2) // a 2px surface gap between slices
@@ -192,9 +196,6 @@ func buildAnalysis(rows []conversationRow, chat *Chat, v *CostView, agent string
 	var names, colors []string
 	var costs []float64
 	for i, c := range categories {
-		if agent != "claude" && sums[i] == 0 {
-			continue // MCP, skills and the like are only told apart in Claude Code
-		}
 		names, colors, costs = append(names, c.Name), append(colors, c.Color), append(costs, sums[i])
 	}
 	total := money(v.Total)
@@ -215,9 +216,6 @@ func buildAnalysis(rows []conversationRow, chat *Chat, v *CostView, agent string
 		cost := 0.0
 		for _, b := range t.Buckets {
 			cost += v.bucket(all, b)
-		}
-		if (t.Buckets[0] == bSearch || t.Buckets[0] == bWrite5m) && cost == 0 {
-			continue
 		}
 		name := t.Name
 		if agent == "codex" && t.Buckets[0] == bInput {
