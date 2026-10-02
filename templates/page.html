@@ -43,7 +43,7 @@
 {{if .Rebuilds}}<p class="rebuild-summary"><span aria-hidden="true">↻</span> <a href="#{{.FirstRebuild}}">{{.Rebuilds}} prompt cache {{if eq .Rebuilds 1}}rebuild{{else}}rebuilds{{end}}</a> cost {{.Money .RebuildCost}}</p>{{end}}
 {{range .Warnings}}<p class="cost-warning"><span aria-hidden="true">⚠</span> {{.}}</p>{{end}}
 {{if not $.Export}}{{template "price-form" .}}{{end}}
-{{if not $.Export}}<p class="cost-links"><a href="{{$.ChatURL}}/analysis?price={{.Main.Model}}">Cost analysis: charts and breakdown →</a></p>{{end}}
+{{if not $.Export}}<p class="cost-links"><a href="{{$.ChatURL}}/analysis?price={{.Main.Model}}"><span aria-hidden="true">📊</span> Cost analysis: charts and breakdown →</a></p>{{end}}
 {{if .Costliest}}<details class="costliest"><summary>Costliest {{len .Costliest}} rows</summary><ol>{{range .Costliest}}<li><a href="#{{.Anchor}}"><span>{{.Label}}</span><span class="row-cost">{{.Cost.Label}}</span></a></li>{{end}}</ol></details>{{end}}
 </section>{{end}}
 {{if .Chat.Warnings}}<p class="notice">{{.Chat.Warnings}} unreadable record(s) skipped. The original JSONL export preserves the source file.</p>{{end}}
