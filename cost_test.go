@@ -227,7 +227,7 @@ func TestAnalysisCategoriesAndPage(t *testing.T) {
 	a := buildAnalysis(rows, &chat, v)
 	sum := 0.0
 	byName := map[string]float64{}
-	for _, s := range a.Slices {
+	for _, s := range a.Kinds.Slices {
 		sum += s.Cost
 		byName[s.Name] = s.Cost
 	}
@@ -241,6 +241,13 @@ func TestAnalysisCategoriesAndPage(t *testing.T) {
 	}
 	if byName["Tool calls & results"] != 0 {
 		t.Errorf("the MCP and Skill calls were counted as plain tools: %v", byName)
+	}
+	typed := 0.0
+	for _, s := range a.Types.Slices {
+		typed += s.Cost
+	}
+	if !near(typed, v.Total) || len(a.Types.Slices) != 4 || a.Types.Slices[2].Name != "Cache read" || a.Types.Slices[2].Cost <= 0 {
+		t.Fatalf("token types %+v add up to %v, want %v", a.Types.Slices, typed, v.Total)
 	}
 	if a.Calls != 6 || len(a.Context.Hits) != 6 || len(a.Context.Markers) != 1 {
 		t.Fatalf("calls %d, hits %d, markers %d", a.Calls, len(a.Context.Hits), len(a.Context.Markers))
@@ -260,7 +267,7 @@ func TestAnalysisCategoriesAndPage(t *testing.T) {
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest("GET", url, nil))
 		body := w.Body.String()
-		if w.Code != 200 || !strings.Contains(body, "Cost by kind") || !strings.Contains(body, `class="line-chart"`) {
+		if w.Code != 200 || !strings.Contains(body, "Cost by kind") || !strings.Contains(body, "Cost by token type") || !strings.Contains(body, `class="line-chart"`) {
 			t.Fatalf("%s: %d", url, w.Code)
 		}
 		export := strings.Contains(url, "format=html")

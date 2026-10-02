@@ -109,15 +109,63 @@ type CallRow struct {
 	Rebuilt, Compacted bool
 }
 
+// Donut is one donut chart with its table.
+type Donut struct {
+	ID, Title, Desc, Total string
+	Slices                 []Slice
+}
+
+// Token types use one green ramp, light to dark, so their colours never
+// echo the kinds above; web search is neutral grey.
+var tokenTypes = []struct {
+	Name, Color string
+	Buckets     []int
+}{
+	{"Output (write)", "#dcefc8", []int{bOutput}},
+	{"Cache write", "#a9d47f", []int{bWrite5m, bWrite1h}},
+	{"Cache read", "#6f9f45", []int{bRead}},
+	{"Uncached input (read)", "#45702a", []int{bInput}},
+	{"Web search", "#6f7a70", []int{bSearch}},
+}
+
+const donutRadius = 70.0
+
+// slices lays out donut slices for the given costs, keeping zero-cost ones
+// for the table.
+func slices(names, colors []string, costs []float64) []Slice {
+	total := 0.0
+	for _, c := range costs {
+		total += c
+	}
+	circ := 2 * math.Pi * donutRadius
+	offset := 0.0
+	var out []Slice
+	for i, name := range names {
+		s := Slice{Name: name, Color: colors[i], Cost: costs[i], Dollars: money(costs[i])}
+		if total > 0 {
+			s.Share = costs[i] / total
+		}
+		s.Percent = fmt.Sprintf("%.1f%%", s.Share*100)
+		if s.Share > 0 {
+			length := s.Share * circ
+			gap := math.Min(2, length/2) // a 2px surface gap between slices
+			s.Dash = fmt.Sprintf("%.2f %.2f", length-gap, circ-length+gap)
+			s.Offset = fmt.Sprintf("%.2f", -offset)
+			offset += length
+		}
+		out = append(out, s)
+	}
+	return out
+}
+
 type Analysis struct {
-	Calls   int
-	Context LineChart
-	Spend   LineChart
-	Slices  []Slice
-	Top     []TopRow
-	Table   []CallRow
-	Peak    string
-	Circ    float64
+	Calls        int
+	Context      LineChart
+	Spend        LineChart
+	Kinds, Types Donut
+	Top          []TopRow
+	Table        []CallRow
+	Peak         string
 }
 
 func buildAnalysis(rows []conversationRow, chat *Chat, v *CostView) *Analysis {
@@ -138,28 +186,36 @@ func buildAnalysis(rows []conversationRow, chat *Chat, v *CostView) *Analysis {
 	}
 	sums[catSystem] += v.cost(chat.Costs.Overhead)
 	sums[catOther] += v.cost(chat.Costs.Unattributed)
-	total := 0.0
-	for _, s := range sums {
-		total += s
+	var names, colors []string
+	for _, c := range categories {
+		names, colors = append(names, c.Name), append(colors, c.Color)
 	}
-	const radius = 70.0
-	a.Circ = 2 * math.Pi * radius
-	offset := 0.0
-	for i, c := range categories {
-		s := Slice{Name: c.Name, Color: c.Color, Cost: sums[i], Dollars: money(sums[i])}
-		if total > 0 {
-			s.Share = sums[i] / total
+	total := money(v.Total)
+	a.Kinds = Donut{ID: "kinds", Title: "Cost by kind", Desc: "Every row's lifetime cost, grouped by what it is.", Total: total, Slices: slices(names, colors, sums)}
+
+	// Cost by token type, subagents included, so both donuts share a total.
+	all := chat.Costs.Overhead
+	all.add(chat.Costs.Unattributed)
+	for _, m := range chat.Messages {
+		if m.Cost != nil {
+			all.add(m.Cost.Direct)
+			all.add(m.Cost.Carried)
+			all.add(m.Cost.Subagent)
 		}
-		s.Percent = fmt.Sprintf("%.1f%%", s.Share*100)
-		if s.Share > 0 {
-			length := s.Share * a.Circ
-			gap := math.Min(2, length/2) // a 2px surface gap between slices
-			s.Dash = fmt.Sprintf("%.2f %.2f", length-gap, a.Circ-length+gap)
-			s.Offset = fmt.Sprintf("%.2f", -offset)
-			offset += length
-		}
-		a.Slices = append(a.Slices, s)
 	}
+	names, colors = nil, nil
+	var costs []float64
+	for _, t := range tokenTypes {
+		cost := 0.0
+		for _, b := range t.Buckets {
+			cost += v.bucket(all, b)
+		}
+		if t.Buckets[0] == bSearch && cost == 0 {
+			continue
+		}
+		names, colors, costs = append(names, t.Name), append(colors, t.Color), append(costs, cost)
+	}
+	a.Types = Donut{ID: "types", Title: "Cost by token type", Desc: "What the API charged for: generating output, writing context to the cache, reading it back, and input sent uncached.", Total: total, Slices: slices(names, colors, costs)}
 
 	// The costliest rows, coloured by the category that dominates each.
 	for _, r := range rows {
