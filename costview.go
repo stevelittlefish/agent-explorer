@@ -97,6 +97,9 @@ type CostView struct {
 	Total, Output, Write, Read, Input, Search, Agents float64
 	Warnings, Notes                                   []string
 	Costliest                                         []costliest
+	Rebuilds                                          int     // prompt cache rebuild rows
+	RebuildCost                                       float64 // what writing the cache again cost
+	FirstRebuild                                      string  // anchor of the first rebuild row
 }
 
 func (v *CostView) Money(f float64) string { return money(f) }
@@ -138,6 +141,13 @@ func priceRows(rows []conversationRow, chat *Chat, p Pricing) *CostView {
 		}
 		rc.Total = rc.Direct + rc.Carried + rc.Subagent
 		rows[i].Price = &rc
+		if rows[i].Role == "cache" {
+			if v.Rebuilds == 0 {
+				v.FirstRebuild = rows[i].Anchor
+			}
+			v.Rebuilds++
+			v.RebuildCost += rc.Total
+		}
 		maxRow = math.Max(maxRow, rc.Total)
 		v.Costliest = append(v.Costliest, costliest{rows[i].Anchor, rowLabel(rows[i]), rc})
 	}

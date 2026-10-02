@@ -163,7 +163,7 @@ func (t *costTracker) assistant(r map[string]any, msgs *[]Message, stamp string)
 			c.epoch = true
 		} else if c.read+rebuildMinimum < c.prevCtx {
 			cause := Message{Role: "cache", Time: stamp}
-			text := fmt.Sprintf("Prompt cache rebuilt: %s tokens written again", Usage{Tokens: c.prevCtx - c.read}.TokenLabel())
+			text := fmt.Sprintf("%s tokens written again", Usage{Tokens: c.prevCtx - c.read}.TokenLabel())
 			// The cache is a prefix and tool definitions come first, so any change
 			// to the tools invalidates all of it. Otherwise the cache may simply
 			// have expired: entries live 5 minutes, or an hour if written that way.

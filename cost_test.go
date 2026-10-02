@@ -197,7 +197,7 @@ func TestCostsOnPagesAndExport(t *testing.T) {
 	}
 	for _, url := range []string{base, base + "/export?format=html&price=claude-sonnet-5"} {
 		body := get(url)
-		for _, want := range []string{"Estimated $", `class="row-cost"`, `class="cost-split">($`, "Prompt cache rebuilt", "Costliest", `aria-label="About this estimate"`, "Not a subscription bill"} {
+		for _, want := range []string{"Estimated $", `class="row-cost"`, `class="cost-split">($`, "Prompt cache rebuilt", "1 prompt cache rebuild</a> cost $", "Costliest", `aria-label="About this estimate"`, "Not a subscription bill"} {
 			if !strings.Contains(body, want) {
 				t.Fatalf("%s lacks %q", url, want)
 			}

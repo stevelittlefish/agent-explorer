@@ -47,6 +47,19 @@ userMessages.forEach((message, position) => {
     });
   }
 });
+const rebuilds = [...document.querySelectorAll('.conversation > .cache-event')];
+const nextRebuild = document.querySelector('#next-rebuild');
+if (nextRebuild && rebuilds.length) {
+  nextRebuild.hidden = false;
+  // Go to the first rebuild below the top of the viewport, wrapping round to
+  // the first one from the end of the conversation.
+  nextRebuild.addEventListener('click', () => {
+    const target = rebuilds.find(r => r.getBoundingClientRect().top > 30) || rebuilds[0];
+    target.tabIndex = -1;
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ block: 'start' });
+  });
+}
 if (navigator.clipboard && window.isSecureContext) {
   document.querySelectorAll('[data-copy]').forEach(button => {
     button.hidden = false;

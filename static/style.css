@@ -9,6 +9,7 @@
   --user: #9dc8f0;
   --agent-border: #62794f;
   --user-border: #55728d;
+  --rebuild: #9085e9;
   --mono: ui-monospace, "Cascadia Code", "Liberation Mono", monospace;
 }
 * { box-sizing: border-box; }
@@ -211,7 +212,19 @@ footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16
 .transcript-detail summary .row-cost-wrap { float: right; margin: 0 12px; }
 .transcript-detail summary .row-cost-wrap span { margin-left: 0; text-transform: none; }
 .cost-detail { margin: 0; padding: 6px 12px; border-bottom: 1px solid var(--line); color: var(--muted); font: 11px/1.8 var(--mono); }
-.cache-event p { display: flex; justify-content: space-between; gap: 12px; margin: 0; padding: 6px 12px; border: 1px dashed #4d5f45; border-radius: 4px; color: var(--muted); font: 12px/1.8 var(--mono); overflow-wrap: anywhere; }
+.cache-event { scroll-margin-top: 24px; }
+.cache-event p { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0; padding: 8px 12px; border: 1px solid #4a4580; border-left: 4px solid var(--rebuild); border-radius: 4px; background: #1c1b2c; color: var(--ink); font: 12px/1.8 var(--mono); overflow-wrap: anywhere; }
+.cache-badge { color: var(--rebuild); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.cache-text { flex: 1 1 260px; min-width: 0; }
+.cache-event time { color: var(--muted); font-size: 10px; }
+.cache-event .row-cost { color: var(--ink); background: linear-gradient(to right, #3a3666 var(--bar), transparent var(--bar)); }
+.rebuild-summary { margin: 8px 0 0; color: var(--rebuild); font: 12px/1.8 var(--mono); }
+.rebuild-summary a { text-decoration: underline; text-underline-offset: 3px; }
+.rebuild-summary a:hover { color: var(--ink); }
+.next-rebuild { color: var(--rebuild); }
+.next-rebuild:hover { color: var(--ink); }
+.cache-event:focus { outline: none; }
+.cache-event:focus p { outline: 2px solid var(--rebuild); outline-offset: 2px; }
 .cost-links { margin: 10px 0 0; font: 12px/1.8 var(--mono); }
 .cost-links a { color: var(--accent); }
 .analysis-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; margin-top: 10px; font: 12px/1.8 var(--mono); }
