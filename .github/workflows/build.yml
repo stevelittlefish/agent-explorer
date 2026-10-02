@@ -43,6 +43,16 @@ jobs:
           go-version: stable
           cache: false
 
+      - name: Work out the version for download names
+        run: |
+          # Tag builds are named after the tag (e.g. v1.2.3); manual test runs
+          # get the short commit hash so they are still distinguishable.
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            echo "VERSION=$GITHUB_REF_NAME" >> "$GITHUB_ENV"
+          else
+            echo "VERSION=dev-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          fi
+
       - name: Format check
         run: |
           unformatted="$(gofmt -l .)"
@@ -78,7 +88,7 @@ jobs:
           checksum = Path('dist/SHA256SUMS')
           checksum.write_text(f'{hashlib.sha256(binary.read_bytes()).hexdigest()}  {binary.name}\n', encoding='utf-8')
           files = [binary, Path('README.md'), Path('LICENSE'), checksum]
-          name = f'agent-explorer-{target}-amd64'
+          name = f"agent-explorer-{os.environ['VERSION']}-{target}-amd64"
           if target == 'linux':
               with tarfile.open(f'dist/{name}.tar.gz', 'w:gz') as archive:
                   for path in files:
@@ -91,7 +101,7 @@ jobs:
       - name: Upload download
         uses: actions/upload-artifact@v7
         with:
-          name: agent-explorer-${{ matrix.target }}-amd64
+          name: agent-explorer-${{ env.VERSION }}-${{ matrix.target }}-amd64
           path: |
             dist/*.tar.gz
             dist/*.zip

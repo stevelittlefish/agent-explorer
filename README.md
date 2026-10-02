@@ -27,20 +27,21 @@ sending them to a service.
 Linux and Windows **x64 / amd64** builds are attached to each
 [GitHub Release](https://github.com/stevelittlefish/agent-explorer/releases).
 Open the latest release and download the `.tar.gz` (Linux) or `.zip` (Windows)
-under **Assets** — no sign-in required. Each package contains the executable, this
-README, the license, and `SHA256SUMS` for checking the executable.
+under **Assets** — no sign-in required. File names include the version (the
+examples below use `v1.2.3`). Each package contains the executable, this README,
+the license, and `SHA256SUMS` for checking the executable.
 
 **Linux:**
 
 ```sh
-tar -xzf agent-explorer-linux-amd64.tar.gz
+tar -xzf agent-explorer-v1.2.3-linux-amd64.tar.gz
 ./agent-explorer
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-Expand-Archive .\agent-explorer-windows-amd64.zip -DestinationPath .\agent-explorer
+Expand-Archive .\agent-explorer-v1.2.3-windows-amd64.zip -DestinationPath .\agent-explorer
 cd .\agent-explorer
 .\agent-explorer.exe
 ```
