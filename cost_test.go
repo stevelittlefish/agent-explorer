@@ -213,3 +213,75 @@ func TestCostsOnPagesAndExport(t *testing.T) {
 		t.Fatal("cost rows leak into the text export")
 	}
 }
+
+func TestAnalysisCategoriesAndPage(t *testing.T) {
+	lines := costSession(
+		`{"type":"assistant","timestamp":"2026-09-30T10:04:00Z","message":{"id":"e","model":"claude-opus-5-5","content":[{"type":"tool_use","id":"s1","name":"Skill","input":{"skill":"x"}}],"usage":{"input_tokens":2,"cache_read_input_tokens":11180,"cache_creation_input_tokens":20,"output_tokens":10}}}`,
+		`{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"s1","content":"Launching skill: x"}]}}`,
+		`{"type":"user","isMeta":true,"sourceToolUseID":"s1","message":{"content":[{"type":"text","text":"Base directory for this skill: /x`+strings.Repeat(" instructions", 200)+`"}]}}`,
+		`{"type":"assistant","timestamp":"2026-09-30T10:05:00Z","message":{"id":"f","model":"claude-opus-5-5","content":[{"type":"text","text":"Ok"}],"usage":{"input_tokens":2,"cache_read_input_tokens":11202,"cache_creation_input_tokens":3000,"output_tokens":5}}}`,
+	)
+	lines[2] = `{"type":"assistant","timestamp":"2026-09-30T10:00:00Z","message":{"id":"a","model":"claude-opus-5-5","content":[{"type":"tool_use","id":"t1","name":"mcp__chrome__navigate","input":{"url":"x"}}],"usage":{"input_tokens":2,"cache_creation_input_tokens":10000,"output_tokens":100}}}`
+	lines[3] = `{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":"` + strings.Repeat("x", 3000) + `"}]}}`
+	chat, rows, v := pricedSession(t, lines)
+	a := buildAnalysis(rows, &chat, v)
+	sum := 0.0
+	byName := map[string]float64{}
+	for _, s := range a.Slices {
+		sum += s.Cost
+		byName[s.Name] = s.Cost
+	}
+	if !near(sum, v.Total) {
+		t.Fatalf("slices add up to %v, want %v", sum, v.Total)
+	}
+	for _, name := range []string{"MCP", "Skills", "User messages", "Responses & reasoning", "System prompt & tools", "Cache rebuilds"} {
+		if byName[name] <= 0 {
+			t.Errorf("%s has no cost: %v", name, byName)
+		}
+	}
+	if byName["Tool calls & results"] != 0 {
+		t.Errorf("the MCP and Skill calls were counted as plain tools: %v", byName)
+	}
+	if a.Calls != 6 || len(a.Context.Hits) != 6 || len(a.Context.Markers) != 1 {
+		t.Fatalf("calls %d, hits %d, markers %d", a.Calls, len(a.Context.Hits), len(a.Context.Markers))
+	}
+
+	root := t.TempDir()
+	path := filepath.Join(root, "claude", "projects", "project", "chat.jsonl")
+	writeLines(t, path, lines)
+	app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), filepath.Join(root, "pi"), filepath.Join(root, "cursor"))
+	base := "/claude/projects/" + key("/project") + "/chats/" + key(path)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest("GET", base, nil))
+	if !strings.Contains(w.Body.String(), base+"/analysis?price=claude-opus-5-5") {
+		t.Fatal("the chat page does not link to its analysis")
+	}
+	for _, url := range []string{base + "/analysis", base + "/analysis?format=html&price=claude-sonnet-5"} {
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest("GET", url, nil))
+		body := w.Body.String()
+		if w.Code != 200 || !strings.Contains(body, "Cost by kind") || !strings.Contains(body, `class="line-chart"`) {
+			t.Fatalf("%s: %d", url, w.Code)
+		}
+		export := strings.Contains(url, "format=html")
+		if export != strings.Contains(w.Header().Get("Content-Disposition"), "-analysis.html") || export && (strings.Contains(body, "<script") || !strings.Contains(body, "<style>") || !strings.Contains(body, "Sonnet 5 prices")) {
+			t.Fatalf("%s is not a self-contained export", url)
+		}
+	}
+}
+
+func TestRebuildAfterMCPReconnect(t *testing.T) {
+	lines := costSession()
+	reconnect := `{"type":"attachment","attachment":{"type":"deferred_tools_delta","addedNames":["mcp__chrome__navigate"],"removedNames":[]}}`
+	lines = append(lines[:6], append([]string{reconnect}, lines[6:]...)...)
+	_, rows, _ := pricedSession(t, lines)
+	for _, r := range rows {
+		if r.Role == "cache" {
+			if !strings.Contains(r.Text, "MCP server connected or disconnected") || category(r.Message) != catMCP {
+				t.Fatalf("rebuild row %q", r.Text)
+			}
+			return
+		}
+	}
+	t.Fatal("no rebuild row")
+}

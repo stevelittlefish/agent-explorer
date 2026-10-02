@@ -36,6 +36,8 @@ type Page struct {
 	Chat                                        *Chat
 	Rows                                        []conversationRow
 	Cost                                        *CostView
+	Analysis                                    *Analysis
+	ChatURL                                     string
 	Export                                      bool
 }
 type App struct {
@@ -205,6 +207,27 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		p.Title = chat.Title
 		p.Rows = conversationRows(chat.Messages)
 		p.Cost = priceRows(p.Rows, &chat, pricingFor(r.URL.Query().Get("price")))
+		p.ChatURL = "/" + p.Agent + "/projects/" + p.ProjectID + "/chats/" + chat.ID
+		if len(parts) == 6 && parts[5] == "analysis" {
+			if p.Cost == nil {
+				http.NotFound(w, r)
+				return
+			}
+			p.Analysis = buildAnalysis(p.Rows, &chat, p.Cost)
+			p.Title = "Cost analysis · " + chat.Title
+			if format := r.URL.Query().Get("format"); format != "" {
+				if format != "html" {
+					http.Error(w, "Unknown export format", 400)
+					return
+				}
+				w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s-analysis.html"`, chat.ID))
+				p.Export = true
+				css, _ := assets.ReadFile("static/style.css")
+				p.CSS = template.CSS(css) // Embedded application stylesheet; never transcript content.
+			}
+			render(w, p)
+			return
+		}
 		if len(parts) == 6 {
 			if parts[5] != "export" {
 				http.NotFound(w, r)

@@ -12,7 +12,7 @@
 {{if .Export}}<span class="brand">{{template "brand-mark"}}Agent Explorer</span>{{else}}<a class="brand" href="/">{{template "brand-mark"}}Agent Explorer</a>
 {{if .Agents}}<nav class="agent-nav" aria-label="Agents">{{range .Agents}}<a href="/{{.ID}}" {{if eq $.Agent .ID}}aria-current="true"{{end}}>{{.Name}}</a>{{end}}</nav>{{end}}{{end}}
 </header>
-{{if not .Export}}<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/">Agents</a>{{if .Agent}}<span aria-hidden="true">/</span><a href="/{{.Agent}}">{{.AgentName}}</a>{{end}}{{if .Project}}<span aria-hidden="true">/</span><a href="/{{.Agent}}/projects/{{.ProjectID}}" title="{{.Project}}">{{base .Project}}</a>{{end}}{{if .Chat}}<span aria-hidden="true">/</span><span aria-current="page">{{.Chat.Title}}</span>{{end}}</nav>{{end}}
+{{if not .Export}}<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/">Agents</a>{{if .Agent}}<span aria-hidden="true">/</span><a href="/{{.Agent}}">{{.AgentName}}</a>{{end}}{{if .Project}}<span aria-hidden="true">/</span><a href="/{{.Agent}}/projects/{{.ProjectID}}" title="{{.Project}}">{{base .Project}}</a>{{end}}{{if .Analysis}}<span aria-hidden="true">/</span><a href="{{.ChatURL}}">{{.Chat.Title}}</a><span aria-hidden="true">/</span><span aria-current="page">Cost analysis</span>{{else if .Chat}}<span aria-hidden="true">/</span><span aria-current="page">{{.Chat.Title}}</span>{{end}}</nav>{{end}}
 <div class="layout {{if and .Chat (not .Export)}}with-index{{end}}">
 {{if and .Chat (not .Export)}}
 <aside class="chat-index" aria-label="Project chats">
@@ -29,7 +29,8 @@
 </aside>
 {{end}}
 <main id="content" class="{{if .Chat}}reader{{else}}browse{{if .Agent}} browse-list{{end}}{{end}}">
-{{if .Chat}}
+{{if .Analysis}}{{template "analysis" .}}
+{{else if .Chat}}
 <div class="page-heading"><div><h1>{{.Chat.Title}}</h1><p class="metadata"><span title="{{.Project}}">{{.Project}}</span><span>{{.AgentName}} · {{date .Chat.Updated}}</span></p></div>
 {{if not .Export}}<nav class="exports" aria-label="Export conversation"><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=html{{if .Cost}}&amp;price={{.Cost.Main.Model}}{{end}}" aria-label="Export HTML">HTML <span aria-hidden="true">↓</span></a><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=txt" aria-label="Export text">TXT <span aria-hidden="true">↓</span></a><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=txt&amp;condense=1" aria-label="Export condensed text">TXT condensed <span aria-hidden="true">↓</span></a><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=jsonl" aria-label="Export original JSONL">JSONL <span aria-hidden="true">↓</span></a></nav>{{end}}</div>
 {{if .Chat.Usage.Present}}<p class="metadata usage-summary" aria-label="Recorded usage">{{if .Chat.Usage.HasTokens}}<span>{{.Chat.Usage.TokenLabel}} tokens</span>{{end}}{{if .Chat.Usage.HasCost}}<span>Recorded cost {{.Chat.Usage.CostLabel}}</span>{{end}}{{with .Cost}}<span>Estimated {{.Money .Total}} at {{.Main.Name}} prices</span>{{end}}</p>{{end}}
@@ -40,7 +41,8 @@
 <p>API list prices as of {{pricesUpdated}}, with background calls as {{.Small.Name}}. Not a subscription bill.</p>
 </div></details></div>
 {{range .Warnings}}<p class="cost-warning"><span aria-hidden="true">⚠</span> {{.}}</p>{{end}}
-{{if not $.Export}}<form class="price-form" method="get"><label>Price as <select name="price" data-autosubmit>{{range .Options}}<option value="{{.Model}}"{{if eq .Model $.Cost.Main.Model}} selected{{end}}>{{.Name}}</option>{{end}}</select></label><button type="submit">Reprice</button></form>{{end}}
+{{if not $.Export}}{{template "price-form" .}}{{end}}
+{{if not $.Export}}<p class="cost-links"><a href="{{$.ChatURL}}/analysis?price={{.Main.Model}}">Cost analysis: charts and breakdown →</a></p>{{end}}
 {{if .Costliest}}<details class="costliest"><summary>Costliest {{len .Costliest}} rows</summary><ol>{{range .Costliest}}<li><a href="#{{.Anchor}}"><span>{{.Label}}</span><span class="row-cost">{{.Cost.Label}}</span></a></li>{{end}}</ol></details>{{end}}
 </section>{{end}}
 {{if .Chat.Warnings}}<p class="notice">{{.Chat.Warnings}} unreadable record(s) skipped. The original JSONL export preserves the source file.</p>{{end}}
@@ -67,5 +69,34 @@
 </main></div>
 <footer><span><span class="status-dot" aria-hidden="true"></span> Local files · Read only</span><span>Agent Explorer</span></footer>
 </body></html>{{end}}
+{{define "price-form"}}<form class="price-form" method="get"><label>Price as <select name="price" data-autosubmit>{{range .Options}}<option value="{{.Model}}"{{if eq .Model $.Main.Model}} selected{{end}}>{{.Name}}</option>{{end}}</select></label><button type="submit">Reprice</button></form>{{end}}
+{{define "analysis"}}{{$a := .Analysis}}{{$c := .Cost}}
+<div class="page-heading"><div><p class="eyebrow">Cost analysis</p><h1>{{.Chat.Title}}</h1><p class="metadata"><span title="{{.Project}}">{{.Project}}</span><span>{{.AgentName}} · {{date .Chat.Updated}}</span></p></div>
+{{if not .Export}}<nav class="exports" aria-label="Export analysis"><a href="{{.ChatURL}}/analysis?format=html&amp;price={{$c.Main.Model}}" aria-label="Export analysis as HTML">HTML <span aria-hidden="true">↓</span></a></nav>{{end}}</div>
+<p class="metadata usage-summary"><span>Estimated {{$c.Money $c.Total}} at {{$c.Main.Name}} prices</span>{{if .Chat.Usage.HasCost}}<span>Recorded cost {{.Chat.Usage.CostLabel}}</span>{{end}}<span>{{$a.Calls}} API calls</span><span>peak context {{$a.Peak}} tokens</span></p>
+{{range $c.Warnings}}<p class="cost-warning"><span aria-hidden="true">⚠</span> {{.}}</p>{{end}}
+{{if .Export}}<p class="metadata cost-note">API list prices as of {{pricesUpdated}}. Not a subscription bill.</p>{{else}}<div class="analysis-tools">{{template "price-form" $c}}<a href="{{.ChatURL}}?price={{$c.Main.Model}}">← Back to the conversation</a></div>{{end}}
+<div class="analysis-grid">
+<section class="chart-card" aria-labelledby="kind-title"><h2 id="kind-title">Cost by kind</h2><p class="chart-desc">Every row's lifetime cost, grouped by what it is.</p>
+<div class="donut-wrap"><svg class="donut" viewBox="0 0 200 200" role="img" aria-labelledby="kind-title"><circle class="donut-track" cx="100" cy="100" r="70"/>{{range $a.Slices}}{{if .Dash}}<circle class="donut-slice" cx="100" cy="100" r="70" stroke="{{.Color}}" stroke-dasharray="{{.Dash}}" stroke-dashoffset="{{.Offset}}" transform="rotate(-90 100 100)"><title>{{.Name}}: {{.Dollars}} ({{.Percent}})</title></circle>{{end}}{{end}}<text class="donut-total" x="100" y="100">{{$c.Money $c.Total}}</text><text class="donut-sub" x="100" y="120">total</text></svg>
+<table class="kind-table"><thead><tr><th scope="col">Kind</th><th scope="col">Cost</th><th scope="col">Share</th></tr></thead><tbody>{{range $a.Slices}}<tr><th scope="row"><span class="swatch" style="background: {{.Color}}"></span>{{.Name}}</th><td>{{.Dollars}}</td><td>{{.Percent}}</td></tr>{{end}}</tbody></table></div>
+<details class="kind-help"><summary>What goes where</summary><dl>
+<dt>Tool calls &amp; results</dt><dd>Built-in tools, including subagents started by the Agent tool.</dd>
+<dt>MCP</dt><dd>Calls to <code>mcp__</code> tools, ToolSearch loading them, and the prompt cache rebuilds that loading causes.</dd>
+<dt>Skills</dt><dd>Skill calls and the instructions each skill adds to the conversation.</dd>
+<dt>System prompt &amp; tools</dt><dd>The system prompt and tool definitions, re-read by every call.</dd>
+<dt>Cache rebuilds</dt><dd>Context written to the cache again because the cache expired or something at its start changed. Rebuilds caused by MCP tools loading or reconnecting count as MCP.</dd>
+<dt>Other</dt><dd>Tokens no visible row could take, such as calls that only produced hidden thinking.</dd>
+</dl></details></section>
+<section class="chart-card" aria-labelledby="top-title"><h2 id="top-title">Costliest rows</h2><p class="chart-desc">Total, then (when made / re-read later). Colour shows the kind.</p>
+<ol class="top-rows">{{range $a.Top}}<li title="{{.Category}}: {{.Cost.Detail}}"><span class="top-label">{{if $.Export}}{{.Label}}{{else}}<a href="{{$.ChatURL}}?price={{$c.Main.Model}}#{{.Anchor}}">{{.Label}}</a>{{end}}</span><span class="top-bar"><span style="width: {{.Width}}%; background: {{.Color}}"></span></span><span class="top-value">{{.Cost.Label}} <span class="cost-split">({{.Cost.Made}}/{{.Cost.Repeated}})</span></span></li>{{end}}</ol></section>
+</div>
+{{template "line-chart" $a.Context}}
+{{template "line-chart" $a.Spend}}
+<details class="call-table"><summary>Per-call data ({{$a.Calls}} calls)</summary><table><thead><tr><th scope="col">Call</th><th scope="col">Time</th><th scope="col">Context tokens</th><th scope="col">Cost</th><th scope="col">Event</th></tr></thead><tbody>{{range $a.Table}}<tr><td>{{.N}}</td><td>{{.Time}}</td><td>{{.Tokens}}</td><td>{{.Cost}}</td><td>{{if .Compacted}}After compaction{{end}}{{if .Rebuilt}}Cache rebuilt{{end}}</td></tr>{{end}}</tbody></table></details>
+{{end}}
+{{define "line-chart"}}<section class="chart-card"><h2>{{.Title}}</h2><p class="chart-desc">{{.Desc}} Hover a call for details.</p>
+<svg class="line-chart" viewBox="0 0 {{.W}} {{.H}}" role="img" aria-label="{{.Title}}">{{range .YTicks}}<line class="grid" x1="{{$.Left}}" x2="{{$.Right}}" y1="{{.At}}" y2="{{.At}}"/><text class="axis" x="{{$.AxisX}}" y="{{.At}}" text-anchor="end" dominant-baseline="middle">{{.Label}}</text>{{end}}{{range .XTicks}}<text class="axis" x="{{.At}}" y="{{$.XLabelY}}" text-anchor="middle">{{.Label}}</text>{{end}}<line class="baseline" x1="{{.Left}}" x2="{{.Right}}" y1="{{.Bot}}" y2="{{.Bot}}"/><path class="area" d="{{.Area}}"/><path class="line" d="{{.Line}}"/>{{range .Markers}}{{if eq .Kind "compaction"}}<line class="marker-compaction" x1="{{.X}}" x2="{{.X}}" y1="{{$.Top}}" y2="{{$.Bot}}"/>{{else}}<circle class="marker-rebuild" cx="{{.X}}" cy="{{.Y}}" r="4.5"/>{{end}}{{end}}{{range .Hits}}<rect class="hit" x="{{.X}}" y="{{$.Top}}" width="{{.W}}" height="{{$.PlotH}}"><title>{{.Title}}</title></rect>{{end}}</svg>
+<p class="chart-legend"><span>API call number →</span>{{if .HasRebuild}}<span><svg width="12" height="12" aria-hidden="true"><circle class="marker-rebuild" cx="6" cy="6" r="4.5"/></svg> prompt cache rebuilt</span>{{end}}{{if .HasCompacted}}<span><svg width="12" height="12" aria-hidden="true"><line class="marker-compaction" x1="6" x2="6" y1="0" y2="12"/></svg> compaction</span>{{end}}</p></section>{{end}}
 {{define "row-cost"}}{{with .}}<span class="row-cost-wrap" title="{{.Detail}}"><span class="row-cost" style="--bar: {{.Bar}}%">{{.Label}}</span> <span class="cost-split">({{.Made}}/{{.Repeated}})</span></span>{{end}}{{end}}
 {{define "brand-mark"}}<svg class="brand-mark" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="6" fill="#101411"/><path d="m8 10 6 6-6 6m10 0h6" fill="none" stroke="#b1d68e" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"/></svg>{{end}}

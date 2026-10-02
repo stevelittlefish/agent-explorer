@@ -22,6 +22,8 @@ type Message struct {
 	Detail           bool
 	ToolResult       bool
 	Cost             *ItemCost // Claude Code only; see cost.go
+	Tool             string    // Claude Code: the tool a call or result belongs to
+	MCP, Skill       bool      // Claude Code: MCP tool activity; skill instructions
 }
 type Chat struct {
 	ID, ProjectID, Project, Title, Path string
@@ -151,6 +153,7 @@ func readChat(path, agent string, full bool) (Chat, error) {
 	var turn codexTurn
 	var usage usageReader
 	var costs *costTracker
+	tools := toolNames{}
 	if full && agent == "claude" {
 		costs = newCostTracker()
 	}
@@ -269,6 +272,9 @@ func readChat(path, agent string, full bool) (Chat, error) {
 						}
 						from := len(c.Messages)
 						readContent(p["content"], typ, stamp, add)
+						if full {
+							tools.label(r, p["content"], c.Messages[from:])
+						}
 						if tracked {
 							costs.added(c.Messages, from, len(c.Messages), typ == "assistant")
 							costs.subagent(r, c.Messages, from)
@@ -301,6 +307,9 @@ func readChat(path, agent string, full bool) (Chat, error) {
 						// attachment, not as a chat message. Surface it as a collapsed
 						// detail so it is available without dominating the transcript.
 						a := obj(r, "attachment")
+						if costs != nil {
+							costs.attachment(a)
+						}
 						if str(a, "type") == "prompt_snapshot" {
 							var parts []string
 							if items, ok := a["systemPrompt"].([]any); ok {
@@ -426,4 +435,55 @@ func contentText(v any) string {
 		return pretty(v)
 	}
 	return strings.Join(parts, "\n\n")
+}
+
+// toolNames labels Claude Code tool rows with their tool, so the analysis can
+// tell MCP tools and skills from other tool use. Results name the call they
+// answer by id; a skill's instructions arrive as a hidden user message that
+// points back at the Skill call.
+type toolNames map[string]Message
+
+func (t toolNames) label(r map[string]any, content any, added []Message) {
+	blocks, _ := content.([]any)
+	calls, results := 0, 0
+	next := func(result bool, from *int) *Message {
+		for ; *from < len(added); *from++ {
+			if m := &added[*from]; m.Role == "tool" && m.ToolResult == result {
+				*from++
+				return m
+			}
+		}
+		return nil
+	}
+	for _, v := range blocks {
+		b, _ := v.(map[string]any)
+		switch str(b, "type") {
+		case "tool_use":
+			name := str(b, "name")
+			m := Message{Tool: name, MCP: strings.HasPrefix(name, "mcp__")}
+			if name == "ToolSearch" { // loading MCP tools is MCP activity too
+				m.MCP = strings.Contains(pretty(b["input"]), "mcp__")
+			}
+			t[str(b, "id")] = m
+			if row := next(false, &calls); row != nil {
+				row.Tool, row.MCP = m.Tool, m.MCP
+			}
+		case "tool_result":
+			if strings.TrimSpace(contentText(b["content"])) == "" {
+				continue // no row was added for it
+			}
+			if row := next(true, &results); row != nil {
+				call := t[str(b, "tool_use_id")]
+				row.Tool, row.MCP = call.Tool, call.MCP
+			}
+		}
+	}
+	if r["isMeta"] == true {
+		skill := t[str(r, "sourceToolUseID")].Tool == "Skill"
+		for i := range added {
+			if added[i].Role == "user" && (skill || strings.HasPrefix(added[i].Text, "Base directory for this skill:")) {
+				added[i].Skill = true
+			}
+		}
+	}
 }

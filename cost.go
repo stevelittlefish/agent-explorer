@@ -77,8 +77,9 @@ type SessionCost struct {
 }
 
 type timedUse struct {
-	At  time.Time
-	Use TokenUse
+	At                 time.Time
+	Use                TokenUse
+	Compacted, Rebuilt bool
 }
 
 const rebuildMinimum = 1024 // tokens; smaller shortfalls are normal cache-boundary noise
@@ -98,14 +99,17 @@ func (c apiCall) ctx() float64 { return c.in + c.read + c.w5 + c.w1h }
 type segment struct{ outputs, inputs []int }
 
 type costTracker struct {
-	calls     []apiCall
-	byID      map[string]int
-	segs      []segment // segs[0] is before the first call; segs[n+1] starts with call n's output
-	boundary  bool
-	sysPrompt int
-	subagents map[int]string // tool result row -> subagent id
-	lastTime  time.Time
-	cost      SessionCost
+	calls    []apiCall
+	byID     map[string]int
+	segs     []segment // segs[0] is before the first call; segs[n+1] starts with call n's output
+	boundary bool
+	// toolsChanged records a change to the available tools since the last
+	// call; mcpChanged that an MCP server's tools or instructions changed.
+	toolsChanged, mcpChanged bool
+	sysPrompt                int
+	subagents                map[int]string // tool result row -> subagent id
+	lastTime                 time.Time
+	cost                     SessionCost
 }
 
 func newCostTracker() *costTracker {
@@ -158,19 +162,35 @@ func (t *costTracker) assistant(r map[string]any, msgs *[]Message, stamp string)
 		if t.boundary || c.ctx()+rebuildMinimum < c.prevCtx {
 			c.epoch = true
 		} else if c.read+rebuildMinimum < c.prevCtx {
+			cause := Message{Role: "cache", Time: stamp}
 			text := fmt.Sprintf("Prompt cache rebuilt: %s tokens written again", Usage{Tokens: c.prevCtx - c.read}.TokenLabel())
-			if gap := now.Sub(t.lastTime); !t.lastTime.IsZero() && !now.IsZero() && gap >= 5*time.Minute {
-				text += " after " + idle(gap) + " idle"
-			} else if t.loadedTools(*msgs) {
-				// Tool definitions come first in the context, so loading more of
-				// them invalidates the whole cache.
+			// The cache is a prefix and tool definitions come first, so any change
+			// to the tools invalidates all of it. Otherwise the cache may simply
+			// have expired: entries live 5 minutes, or an hour if written that way.
+			prev := t.calls[len(t.calls)-1]
+			ttl := 5 * time.Minute
+			if prev.w1h > 0 {
+				ttl = time.Hour
+			}
+			gap := now.Sub(t.lastTime)
+			if search := t.loadedTools(*msgs); search != nil {
 				text += " after ToolSearch loaded more tools"
+				cause.Tool, cause.MCP = "ToolSearch", search.MCP
+			} else if t.toolsChanged {
+				text += " after the available tools changed"
+				if t.mcpChanged {
+					text += " (an MCP server connected or disconnected)"
+				}
+				cause.MCP = t.mcpChanged
+			} else if !t.lastTime.IsZero() && !now.IsZero() && gap >= ttl {
+				text += " after " + idle(gap) + " idle, longer than the cache lasts"
 			}
 			c.event = len(*msgs)
-			*msgs = append(*msgs, Message{Role: "cache", Text: text, Time: stamp})
+			cause.Text = text
+			*msgs = append(*msgs, cause)
 		}
 	}
-	t.boundary = false
+	t.boundary, t.toolsChanged, t.mcpChanged = false, false, false
 	if !now.IsZero() {
 		t.lastTime = now
 	}
@@ -182,14 +202,37 @@ func (t *costTracker) assistant(r map[string]any, msgs *[]Message, stamp string)
 	t.cost.Writes[c.model] = [2]float64{w[0] + c.w5, w[1] + c.w1h}
 }
 
-func (t *costTracker) loadedTools(msgs []Message) bool {
+// loadedTools finds a ToolSearch call since the previous API call.
+func (t *costTracker) loadedTools(msgs []Message) *Message {
 	s := t.segs[len(t.segs)-1]
 	for _, i := range append(s.outputs, s.inputs...) {
 		if msgs[i].Role == "tool" && !msgs[i].ToolResult && strings.HasPrefix(msgs[i].Text, "ToolSearch\n") {
-			return true
+			return &msgs[i]
 		}
 	}
-	return false
+	return nil
+}
+
+// attachment notes Claude Code's records of the tool list changing.
+func (t *costTracker) attachment(a map[string]any) {
+	kind := str(a, "type")
+	if kind != "deferred_tools_delta" && kind != "mcp_instructions_delta" {
+		return
+	}
+	var names []any
+	for _, k := range []string{"addedNames", "removedNames"} {
+		list, _ := a[k].([]any)
+		names = append(names, list...)
+	}
+	if len(names) == 0 {
+		return
+	}
+	t.toolsChanged = true
+	for _, n := range names {
+		if s, _ := n.(string); kind == "mcp_instructions_delta" || strings.HasPrefix(s, "mcp__") {
+			t.mcpChanged = true
+		}
+	}
 }
 
 func idle(d time.Duration) string {
@@ -267,7 +310,7 @@ func (t *costTracker) finish(msgs []Message, path string) *SessionCost {
 	for _, c := range t.calls {
 		var u TokenUse
 		u[c.role] = [nBuckets]float64{c.out, c.in, c.read, c.w5, c.w1h, c.srch}
-		sc.PerCall = append(sc.PerCall, timedUse{c.at, u})
+		sc.PerCall = append(sc.PerCall, timedUse{c.at, u, c.epoch && len(sc.PerCall) > 0, c.event >= 0})
 	}
 	for j, c := range t.calls {
 		s := t.segs[j]
