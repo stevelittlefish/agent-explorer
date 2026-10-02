@@ -11,15 +11,37 @@ import (
 // Pricing prices a session as if every main-model call ran on Main and every
 // background (Haiku) call on Small. The aim is to judge a workflow at today's
 // prices, so older sessions are deliberately repriced rather than priced as run.
-type Pricing struct{ Main, Small Price }
+// Codex has no background model, so Small is empty there.
+type Pricing struct {
+	Main, Small Price
+	Table       []Price // the models this agent's sessions can be priced as
+}
 
-func pricingFor(model string) Pricing {
-	main, ok := priceFor(model)
-	if !ok {
-		main, _ = priceFor(defaultPriceModel)
+func pricingFor(agent, model string) Pricing {
+	table, fallback := priceTable, defaultPriceModel
+	if agent == "codex" {
+		table, fallback = codexPriceTable, defaultCodexPriceModel
 	}
-	small, _ := priceFor(smallPriceModel)
-	return Pricing{main, small}
+	p := Pricing{Table: table}
+	for _, id := range []string{model, fallback} {
+		if pr, ok := priceFor(id); ok && inTable(table, pr.Model) {
+			p.Main = pr
+			break
+		}
+	}
+	if agent != "codex" {
+		p.Small, _ = priceFor(smallPriceModel)
+	}
+	return p
+}
+
+func inTable(table []Price, model string) bool {
+	for _, p := range table {
+		if p.Model == model {
+			return true
+		}
+	}
+	return false
 }
 
 func (p Pricing) bucket(t TokenUse, b int) float64 {
@@ -110,7 +132,7 @@ func priceRows(rows []conversationRow, chat *Chat, p Pricing) *CostView {
 	if chat.Costs == nil {
 		return nil
 	}
-	v := &CostView{Pricing: p, Options: priceTable}
+	v := &CostView{Pricing: p, Options: p.Table}
 	var all TokenUse
 	add := func(t TokenUse) { all.add(t) }
 	add(chat.Costs.Overhead)
@@ -282,6 +304,25 @@ func (v *CostView) check(chat *Chat) {
 				v.Notes = append(v.Notes, fmt.Sprintf("%s uses the newer tokenizer, which counts about 30%% more tokens than %s, so this estimate is high.", pr.Name, v.Main.Name))
 			}
 			break
+		}
+	}
+	for _, model := range ran {
+		if _, ok := priceFor(model); !ok && strings.HasPrefix(model, "gpt-") {
+			v.Warnings = append(v.Warnings, fmt.Sprintf("This session ran on %s, which isn't in the price table. Ask Claude to update the prices.", model))
+		}
+	}
+	if v.Small.Model == "" {
+		long := 0
+		for _, c := range sc.PerCall {
+			if c.Use[roleMain][bInput]+c.Use[roleMain][bRead]+c.Use[roleMain][bWrite5m]+c.Use[roleMain][bWrite1h] > longContext {
+				long++
+			}
+		}
+		if long > 0 {
+			v.Notes = append(v.Notes, fmt.Sprintf("%d %s sent more than %dK tokens, which OpenAI prices higher; they are estimated at the standard rates, so this estimate is low.", long, plural(long, "call"), longContext/1000))
+		}
+		if n := spawnedAgents(chat.Messages); n > 0 {
+			v.Notes = append(v.Notes, fmt.Sprintf("%d spawn_agent %s started subagents, which run as sessions of their own and are not included.", n, plural(n, "call")))
 		}
 	}
 	if sc.Fast {

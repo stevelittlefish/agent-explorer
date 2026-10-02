@@ -39,7 +39,9 @@ const (
 
 func category(m Message) int {
 	switch {
-	case m.Role == "system prompt":
+	case m.Role == "system prompt" || m.Role == "developer":
+		return catSystem // Codex sends its permissions and AGENTS.md as developer and user messages
+	case m.Role == "user" && (strings.HasPrefix(m.Text, "<environment_context>") || strings.HasPrefix(m.Text, "# AGENTS.md")):
 		return catSystem
 	case m.Role == "cache" && m.MCP:
 		return catMCP // ToolSearch loaded MCP tools and so rebuilt the cache
@@ -169,7 +171,7 @@ type Analysis struct {
 	Peak         string
 }
 
-func buildAnalysis(rows []conversationRow, chat *Chat, v *CostView) *Analysis {
+func buildAnalysis(rows []conversationRow, chat *Chat, v *CostView, agent string) *Analysis {
 	a := &Analysis{Calls: len(chat.Costs.PerCall)}
 
 	// Cost by category, from every priced row item and the session leftovers.
@@ -188,11 +190,15 @@ func buildAnalysis(rows []conversationRow, chat *Chat, v *CostView) *Analysis {
 	sums[catSystem] += v.cost(chat.Costs.Overhead)
 	sums[catOther] += v.cost(chat.Costs.Unattributed)
 	var names, colors []string
-	for _, c := range categories {
-		names, colors = append(names, c.Name), append(colors, c.Color)
+	var costs []float64
+	for i, c := range categories {
+		if agent != "claude" && sums[i] == 0 {
+			continue // MCP, skills and the like are only told apart in Claude Code
+		}
+		names, colors, costs = append(names, c.Name), append(colors, c.Color), append(costs, sums[i])
 	}
 	total := money(v.Total)
-	a.Kinds = Donut{ID: "kinds", Title: "Cost by kind", Desc: "Every row's lifetime cost, grouped by what it is.", Total: total, Slices: slices(names, colors, sums)}
+	a.Kinds = Donut{ID: "kinds", Title: "Cost by kind", Desc: "Every row's lifetime cost, grouped by what it is.", Total: total, Slices: slices(names, colors, costs)}
 
 	// Cost by token type, subagents included, so both donuts share a total.
 	all := chat.Costs.Overhead
@@ -204,14 +210,13 @@ func buildAnalysis(rows []conversationRow, chat *Chat, v *CostView) *Analysis {
 			all.add(m.Cost.Subagent)
 		}
 	}
-	names, colors = nil, nil
-	var costs []float64
+	names, colors, costs = nil, nil, nil
 	for _, t := range tokenTypes {
 		cost := 0.0
 		for _, b := range t.Buckets {
 			cost += v.bucket(all, b)
 		}
-		if t.Buckets[0] == bSearch && cost == 0 {
+		if (t.Buckets[0] == bSearch || t.Buckets[0] == bWrite5m) && cost == 0 {
 			continue
 		}
 		names, colors, costs = append(names, t.Name), append(colors, t.Color), append(costs, cost)

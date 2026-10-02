@@ -33,12 +33,12 @@
 {{else if .Chat}}
 <div class="page-heading"><div><h1>{{.Chat.Title}}</h1><p class="metadata"><span title="{{.Project}}">{{.Project}}</span><span>{{.AgentName}} · {{date .Chat.Updated}}</span></p></div>
 {{if not .Export}}<nav class="exports" aria-label="Export conversation"><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=html{{if .Cost}}&amp;price={{.Cost.Main.Model}}{{end}}" aria-label="Export HTML">HTML <span aria-hidden="true">↓</span></a><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=txt" aria-label="Export text">TXT <span aria-hidden="true">↓</span></a><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=txt&amp;condense=1" aria-label="Export condensed text">TXT condensed <span aria-hidden="true">↓</span></a><a href="/{{.Agent}}/projects/{{.ProjectID}}/chats/{{.Chat.ID}}/export?format=jsonl" aria-label="Export original JSONL">JSONL <span aria-hidden="true">↓</span></a></nav>{{end}}</div>
-{{if .Chat.Usage.Present}}<p class="metadata usage-summary" aria-label="Recorded usage">{{if .Chat.Usage.HasTokens}}<span>{{.Chat.Usage.TokenLabel}} tokens</span>{{end}}{{if .Chat.Usage.HasCost}}<span>Recorded cost {{.Chat.Usage.CostLabel}}</span>{{end}}{{with .Cost}}<span>Estimated {{.Money .Total}} at {{.Main.Name}} prices</span>{{end}}</p>{{end}}
+{{if or .Chat.Usage.Present .Cost}}<p class="metadata usage-summary" aria-label="Recorded usage">{{if .Chat.Usage.HasTokens}}<span>{{.Chat.Usage.TokenLabel}} tokens</span>{{end}}{{if .Chat.Usage.HasCost}}<span>Recorded cost {{.Chat.Usage.CostLabel}}</span>{{end}}{{with .Cost}}<span>Estimated {{.Money .Total}} at {{.Main.Name}} prices</span>{{end}}</p>{{end}}
 {{with .Cost}}<section class="cost-summary" aria-label="Estimated cost">
 <div class="metadata cost-breakdown"><span>Output {{.Money .Output}}</span><span>cache write {{.Money .Write}}</span><span>cache read {{.Money .Read}}</span>{{if ge .Input 0.01}}<span>uncached input {{.Money .Input}}</span>{{end}}{{if .Search}}<span>web search {{.Money .Search}}</span>{{end}}{{if .Agents}}<span>subagents {{.Money .Agents}}</span>{{end}}<details class="cost-help"><summary aria-label="About this estimate" title="About this estimate">?</summary><div class="cost-help-body">
 <p>Each row shows its estimated total, then (cost when it was made / cost of later calls re-reading it).</p>
 {{range .Notes}}<p>{{.}}</p>{{end}}
-<p>API list prices as of {{pricesUpdated}}, with background calls as {{.Small.Name}}. Not a subscription bill.</p>
+<p>API list prices as of {{pricesUpdated}}{{if .Small.Model}}, with background calls as {{.Small.Name}}{{end}}. Not a subscription bill.</p>
 </div></details></div>
 {{if .Rebuilds}}<p class="rebuild-summary"><span aria-hidden="true">↻</span> <a href="#{{.FirstRebuild}}">{{.Rebuilds}} prompt cache {{if eq .Rebuilds 1}}rebuild{{else}}rebuilds{{end}}</a> cost {{.Money .RebuildCost}}</p>{{end}}
 {{range .Warnings}}<p class="cost-warning"><span aria-hidden="true">⚠</span> {{.}}</p>{{end}}
@@ -79,14 +79,20 @@
 {{if .Export}}<p class="metadata cost-note">API list prices as of {{pricesUpdated}}. Not a subscription bill.</p>{{else}}<div class="analysis-tools">{{template "price-form" $c}}<a href="{{.ChatURL}}?price={{$c.Main.Model}}">← Back to the conversation</a></div>{{end}}
 <div class="analysis-grid">
 <section class="chart-card" aria-labelledby="kinds-title">{{template "donut" $a.Kinds}}
-<details class="kind-help"><summary>What goes where</summary><dl>
+<details class="kind-help"><summary>What goes where</summary>{{if eq .Agent "codex"}}<dl>
+<dt>Tool calls &amp; results</dt><dd>Commands, patches and other tool use. Work done by agents that spawn_agent starts is in their own sessions.</dd>
+<dt>Responses &amp; reasoning</dt><dd>Replies, reasoning summaries, and the hidden reasoning tokens behind them.</dd>
+<dt>System prompt &amp; tools</dt><dd>Codex's instructions, tool definitions, permissions, AGENTS.md and environment context, re-read by every call.</dd>
+<dt>Cache rebuilds</dt><dd>Context sent again uncached because the prompt cache missed: it expired, or the request landed where it wasn't cached.</dd>
+<dt>Other</dt><dd>Tokens no visible row could take, such as calls that only produced hidden reasoning.</dd>
+</dl>{{else}}<dl>
 <dt>Tool calls &amp; results</dt><dd>Built-in tools, including subagents started by the Agent tool.</dd>
 <dt>MCP</dt><dd>Calls to <code>mcp__</code> tools, ToolSearch loading them, and the prompt cache rebuilds that loading causes.</dd>
 <dt>Skills</dt><dd>Skill calls and the instructions each skill adds to the conversation.</dd>
 <dt>System prompt &amp; tools</dt><dd>The system prompt and tool definitions, re-read by every call.</dd>
 <dt>Cache rebuilds</dt><dd>Context written to the cache again because the cache expired or something at its start changed. Rebuilds caused by MCP tools loading or reconnecting count as MCP.</dd>
 <dt>Other</dt><dd>Tokens no visible row could take, such as calls that only produced hidden thinking.</dd>
-</dl></details></section>
+</dl>{{end}}</details></section>
 <section class="chart-card" aria-labelledby="types-title">{{template "donut" $a.Types}}
 <p class="chart-desc donut-note">Output is priced highest per token, but cache reads are re-paid on every call, so they often add up to more.</p></section>
 <section class="chart-card chart-wide" aria-labelledby="top-title"><h2 id="top-title">Costliest rows</h2><p class="chart-desc">Total, then (when made / re-read later). Colour shows the kind.</p>

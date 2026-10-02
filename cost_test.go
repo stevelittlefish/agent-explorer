@@ -57,7 +57,7 @@ func pricedSession(t *testing.T, lines []string) (Chat, []conversationRow, *Cost
 		t.Fatal(err)
 	}
 	rows := conversationRows(chat.Messages)
-	return chat, rows, priceRows(rows, &chat, pricingFor(""))
+	return chat, rows, priceRows(rows, &chat, pricingFor("claude", ""))
 }
 
 func near(a, b float64) bool { return math.Abs(a-b) < 1e-9 }
@@ -122,7 +122,7 @@ func TestRepricingWarnsAboutModel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	v := priceRows(conversationRows(chat.Messages), &chat, pricingFor("claude-fable-5-1"))
+	v := priceRows(conversationRows(chat.Messages), &chat, pricingFor("claude", "claude-fable-5-1"))
 	if len(v.Warnings) != 1 || !strings.Contains(v.Warnings[0], "prices this session as Fable 5.1; it ran on Opus 5.5") {
 		t.Fatalf("%q", v.Warnings)
 	}
@@ -152,7 +152,7 @@ func TestSubagentCostJoinsItsToolCall(t *testing.T) {
 		t.Fatal(err)
 	}
 	rows := conversationRows(chat.Messages)
-	v := priceRows(rows, &chat, pricingFor(""))
+	v := priceRows(rows, &chat, pricingFor("claude", ""))
 	if !near(v.Agents, 0.01) || !near(v.Total, sessionTotal+0.01) {
 		t.Fatalf("subagents %v total %v", v.Agents, v.Total)
 	}
@@ -224,7 +224,7 @@ func TestAnalysisCategoriesAndPage(t *testing.T) {
 	lines[2] = `{"type":"assistant","timestamp":"2026-09-30T10:00:00Z","message":{"id":"a","model":"claude-opus-5-5","content":[{"type":"tool_use","id":"t1","name":"mcp__chrome__navigate","input":{"url":"x"}}],"usage":{"input_tokens":2,"cache_creation_input_tokens":10000,"output_tokens":100}}}`
 	lines[3] = `{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":"` + strings.Repeat("x", 3000) + `"}]}}`
 	chat, rows, v := pricedSession(t, lines)
-	a := buildAnalysis(rows, &chat, v)
+	a := buildAnalysis(rows, &chat, v, "claude")
 	sum := 0.0
 	byName := map[string]float64{}
 	for _, s := range a.Kinds.Slices {

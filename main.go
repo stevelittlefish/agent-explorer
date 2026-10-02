@@ -206,14 +206,14 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		p.Chat = &chat
 		p.Title = chat.Title
 		p.Rows = conversationRows(chat.Messages)
-		p.Cost = priceRows(p.Rows, &chat, pricingFor(r.URL.Query().Get("price")))
+		p.Cost = priceRows(p.Rows, &chat, pricingFor(p.Agent, r.URL.Query().Get("price")))
 		p.ChatURL = "/" + p.Agent + "/projects/" + p.ProjectID + "/chats/" + chat.ID
 		if len(parts) == 6 && parts[5] == "analysis" {
 			if p.Cost == nil {
 				http.NotFound(w, r)
 				return
 			}
-			p.Analysis = buildAnalysis(p.Rows, &chat, p.Cost)
+			p.Analysis = buildAnalysis(p.Rows, &chat, p.Cost, p.Agent)
 			p.Title = "Cost analysis · " + chat.Title
 			if format := r.URL.Query().Get("format"); format != "" {
 				if format != "html" {

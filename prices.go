@@ -2,9 +2,12 @@ package main
 
 import "strings"
 
-// Prices for estimating Claude Code session costs, in USD per million tokens.
+// Prices for estimating Claude Code and Codex session costs, in USD per
+// million tokens.
 //
 // HOW TO UPDATE THE PRICES ("Claude - update the prices!")
+//
+// Claude Code (priceTable):
 //
 //  1. Fetch the official table: https://platform.claude.com/docs/en/about-claude/pricing.md
 //     (the "Model pricing" table: base input, 5m cache writes, 1h cache writes,
@@ -22,13 +25,29 @@ import "strings"
 //  6. Check against real sessions: run `go test ./...`, then ./run.sh and open a
 //     recent Claude Code chat. Its header must not warn that the price table
 //     disagrees with what Claude Code recorded.
-//  7. Commit and push (see AGENTS.md).
+//
+// Codex (codexPriceTable):
+//
+//  7. Fetch https://developers.openai.com/api/docs/pricing (standard tier, text
+//     tokens: input, cached input, cache writes, output; short-context rates).
+//  8. Make codexPriceTable match it for every model local Codex sessions use
+//     (the "model" in their turn_context records) and any newer flagship. Where
+//     cache writes are N/A, use the input rate: such writes bill as input.
+//  9. Point defaultCodexPriceModel at the newest model the user works with.
+//  10. Run `go test ./...`, then open a recent Codex chat; its cost summary must
+//     not say its model is missing from the price table.
+//  11. Commit and push (see AGENTS.md).
 //
 // Sessions are estimated as if run on a current model (see Pricing), so
 // only current models matter. There is deliberately no history of past prices.
 const pricesUpdated = "2026-10-02"
 const defaultPriceModel = "claude-opus-5-5"
 const smallPriceModel = "claude-haiku-4-5"
+const defaultCodexPriceModel = "gpt-6.1-sol"
+
+// OpenAI charges more above longContext input tokens in one call; estimates
+// use the standard rates and say when a session crossed it.
+const longContext = 272000
 const webSearchPrice = 10.0 / 1000 // USD per search
 
 type Price struct {
@@ -53,6 +72,16 @@ var priceTable = []Price{
 	{"claude-haiku-4-5", "Haiku 4.5", 1, 1.25, 2, 0.10, 5, false},
 }
 
+// Write5m and Write1h are both the cache write rate: OpenAI has one cache.
+var codexPriceTable = []Price{
+	{"gpt-6.1-sol", "GPT-6.1 Sol", 2, 2.5, 2.5, 0.10, 10, false},
+	{"gpt-6-astra", "GPT-6 Astra", 10, 12.5, 12.5, 1, 50, false},
+	{"gpt-6-sol", "GPT-6 Sol", 2, 2.5, 2.5, 0.20, 10, false},
+	{"gpt-5.6-sol", "GPT-5.6 Sol", 4, 5, 5, 0.40, 20, false},
+	{"gpt-5.5", "GPT-5.5", 5, 5, 5, 0.50, 30, false},
+	{"gpt-5.3-codex", "GPT-5.3 Codex", 1.75, 1.75, 1.75, 0.175, 14, false},
+}
+
 // priceFor finds a model's prices. Recorded IDs may carry a date suffix
 // (claude-haiku-4-5-20251001); anything else must match exactly, so an unknown
 // claude-opus-5-6 is reported as missing rather than priced as Opus 5.
@@ -60,7 +89,7 @@ func priceFor(model string) (Price, bool) {
 	if i := strings.LastIndex(model, "-"); i > 0 && len(model)-i-1 == 8 && strings.Trim(model[i+1:], "0123456789") == "" {
 		model = model[:i]
 	}
-	for _, p := range priceTable {
+	for _, p := range append(priceTable, codexPriceTable...) {
 		if p.Model == model {
 			return p, true
 		}

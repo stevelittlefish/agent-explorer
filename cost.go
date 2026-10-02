@@ -139,19 +139,23 @@ func readCall(m map[string]any) (apiCall, bool) {
 // append a cache-rebuild row, which belongs to no segment.
 func (t *costTracker) assistant(r map[string]any, msgs *[]Message, stamp string) {
 	m := obj(r, "message")
-	id := str(m, "id")
 	c, ok := readCall(m)
 	if !ok {
 		return
 	}
+	if str(obj(m, "usage"), "speed") == "fast" {
+		t.cost.Fast = true
+	}
+	t.call(str(m, "id"), c, msgs, stamp)
+}
+
+// call records one API call. It may append a cache-rebuild row.
+func (t *costTracker) call(id string, c apiCall, msgs *[]Message, stamp string) {
 	if i, seen := t.byID[id]; seen {
 		old := t.calls[i]
 		c.epoch, c.event, c.prevCtx, c.at = old.epoch, old.event, old.prevCtx, old.at
 		t.calls[i] = c // streamed blocks repeat the message; keep its latest usage
 		return
-	}
-	if str(obj(m, "usage"), "speed") == "fast" {
-		t.cost.Fast = true
 	}
 	now, _ := time.Parse(time.RFC3339Nano, stamp)
 	c.at = now
@@ -163,7 +167,11 @@ func (t *costTracker) assistant(r map[string]any, msgs *[]Message, stamp string)
 			c.epoch = true
 		} else if c.read+rebuildMinimum < c.prevCtx {
 			cause := Message{Role: "cache", Time: stamp}
-			text := fmt.Sprintf("%s tokens written again", Usage{Tokens: c.prevCtx - c.read}.TokenLabel())
+			again := "written again"
+			if c.w5+c.w1h == 0 {
+				again = "sent again uncached" // providers that charge nothing extra to fill the cache
+			}
+			text := fmt.Sprintf("%s tokens %s", Usage{Tokens: c.prevCtx - c.read}.TokenLabel(), again)
 			// The cache is a prefix and tool definitions come first, so any change
 			// to the tools invalidates all of it. Otherwise the cache may simply
 			// have expired: entries live 5 minutes, or an hour if written that way.

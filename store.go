@@ -153,9 +153,13 @@ func readChat(path, agent string, full bool) (Chat, error) {
 	var turn codexTurn
 	var usage usageReader
 	var costs *costTracker
+	var codex *codexCosts
 	tools := toolNames{}
-	if full && agent == "claude" {
+	if full && (agent == "claude" || agent == "codex") {
 		costs = newCostTracker()
+	}
+	if full && agent == "codex" {
+		codex = &codexCosts{}
 	}
 	messageKind := ""
 	lastSystemPrompt := ""
@@ -240,6 +244,9 @@ func readChat(path, agent string, full bool) (Chat, error) {
 						case "reasoning":
 							readContent(p["summary"], "reasoning", stamp, add)
 						}
+					}
+					if codex != nil {
+						codex.read(r, c.Messages)
 					}
 				} else if agent == "cursor" {
 					if cwd := str(r, "cwd"); cwd != "" {
@@ -345,6 +352,13 @@ func readChat(path, agent string, full bool) (Chat, error) {
 		for _, m := range events {
 			messageKind = m.Kind
 			add(m.Role, m.Text, m.Time, false)
+		}
+	}
+	if codex != nil {
+		if hasResponses {
+			c.Messages = codex.replay(costs, c.Messages)
+		} else {
+			costs = nil // the rows came from event messages, which carry no tool activity to attribute to
 		}
 	}
 	if costs != nil {
