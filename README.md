@@ -52,6 +52,10 @@ cd .\agent-explorer
 Open **http://127.0.0.1:8484**. Keep the terminal open while browsing; press `Ctrl+C`
 to stop the server. Use `-addr 127.0.0.1:8087` if port 8484 is occupied.
 
+By default the server listens on all interfaces (`0.0.0.0:8484`), so other machines on
+your network can reach it, and it exposes your agent session history. Use
+`-addr 127.0.0.1:8484` to restrict it to this computer.
+
 **Apple builds? No.** We are not volunteering for signed-executable bureaucracy,
 notarisation rituals, or a guided tour of somebody else's walled garden.
 **Steve Jobs, we just want to run a binary, not apply for planning permission

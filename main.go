@@ -68,7 +68,7 @@ func main() {
 	}
 	cursor := flag.String("cursor-dir", cursorDefault, "Cursor data directory")
 	imp := flag.String("imp-dir", filepath.Join(home, ".imp"), "imp data directory")
-	addr := flag.String("addr", "127.0.0.1:8484", "HTTP listen address")
+	addr := flag.String("addr", "0.0.0.0:8484", "HTTP listen address")
 	codex := flag.String("codex-dir", codexDefault, "Codex data directory")
 	claude := flag.String("claude-dir", claudeDefault, "Claude Code data directory")
 	pi := flag.String("pi-dir", piDefault, "pi agent data directory")
