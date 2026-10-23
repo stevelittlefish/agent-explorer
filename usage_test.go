@@ -75,7 +75,7 @@ func TestUsageOnChatAndHTMLExport(t *testing.T) {
 				}
 			}
 			writeRecords(t, path, records...)
-			app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), filepath.Join(root, "pi"), filepath.Join(root, "cursor"))
+			app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), filepath.Join(root, "pi"), filepath.Join(root, "cursor"), filepath.Join(root, "imp"))
 			base := "/claude/projects/" + key("/project") + "/chats/" + key(path)
 			for _, suffix := range []string{"", "/export?format=html"} {
 				w := httptest.NewRecorder()

@@ -155,11 +155,16 @@ func readChat(path, agent string, full bool) (Chat, error) {
 	var costs *costTracker
 	var codex *codexCosts
 	tools := toolNames{}
-	if full && (agent == "claude" || agent == "codex") {
+	var imp impSession
+	if full && (agent == "claude" || agent == "codex" || agent == "imp") {
 		costs = newCostTracker()
 	}
 	if full && agent == "codex" {
 		codex = &codexCosts{}
+	}
+	if costs != nil && agent == "imp" {
+		costs.rebuildMinimum = codexRebuildMinimum // some of imp's providers round cache blocks like OpenAI
+		costs.cachingOnly = true                   // and many have no prompt cache at all
 	}
 	messageKind := ""
 	lastSystemPrompt := ""
@@ -263,6 +268,8 @@ func readChat(path, agent string, full bool) (Chat, error) {
 					}
 				} else if agent == "pi" {
 					readPiRecord(r, stamp, &c, &titleFound, add)
+				} else if agent == "imp" {
+					imp.read(r, stamp, &c, costs, add)
 				} else {
 					if c.Project == "" {
 						c.Project = str(r, "cwd")
@@ -383,6 +390,8 @@ func readChat(path, agent string, full bool) (Chat, error) {
 			if c.Project == "" {
 				c.Project = "Unknown project"
 			}
+		} else if agent == "imp" {
+			c.Project = impProject(path)
 		} else if agent == "claude" || agent == "pi" {
 			c.Project = filepath.Base(filepath.Dir(path))
 		} else {

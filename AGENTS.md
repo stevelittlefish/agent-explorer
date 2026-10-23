@@ -14,5 +14,5 @@
 - Whenever you commit, push to `origin main` in the same task. A commit is not
   finished until it is pushed. If pushing fails, report the failure explicitly.
 - The reason: "why would we commit and not push.  That is illogical.  We want to share our groundbreaking incredible project with the entire world!"
-- Claude Code and Codex cost estimates use the price table in `prices.go`. When asked to
+- Claude Code, Codex and imp cost estimates use the price tables in `prices.go`. When asked to
   "update the prices", follow the steps in that file's header comment.

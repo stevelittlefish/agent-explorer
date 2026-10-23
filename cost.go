@@ -113,10 +113,14 @@ type costTracker struct {
 	// call; mcpChanged that an MCP server's tools or instructions changed.
 	toolsChanged, mcpChanged bool
 	rebuildMinimum           float64
-	sysPrompt                int
-	subagents                map[int]string // tool result row -> subagent id
-	lastTime                 time.Time
-	cost                     SessionCost
+	// cachingOnly flags rebuilds only for a model already seen using the
+	// prompt cache, cachingModel: without a cache, every call reads nothing.
+	cachingOnly  bool
+	cachingModel string
+	sysPrompt    int
+	subagents    map[int]string // tool result row -> subagent id
+	lastTime     time.Time
+	cost         SessionCost
 }
 
 func newCostTracker() *costTracker {
@@ -172,7 +176,7 @@ func (t *costTracker) call(id string, c apiCall, msgs *[]Message, stamp string) 
 		c.prevCtx = t.calls[len(t.calls)-1].ctx()
 		if t.boundary || c.ctx()+rebuildMinimum < c.prevCtx {
 			c.epoch = true
-		} else if c.read+t.rebuildMinimum < c.prevCtx {
+		} else if c.read+t.rebuildMinimum < c.prevCtx && (!t.cachingOnly || c.model == t.cachingModel) {
 			cause := Message{Role: "cache", Time: stamp}
 			again := "written again"
 			if c.w5+c.w1h == 0 {
@@ -206,6 +210,9 @@ func (t *costTracker) call(id string, c apiCall, msgs *[]Message, stamp string) 
 		}
 	}
 	t.boundary, t.toolsChanged, t.mcpChanged = false, false, false
+	if c.read+c.w5+c.w1h > 0 {
+		t.cachingModel = c.model
+	}
 	if !now.IsZero() {
 		t.lastTime = now
 	}

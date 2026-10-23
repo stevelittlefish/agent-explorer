@@ -11,7 +11,7 @@ import (
 func TestCursorSessions(t *testing.T) {
 	root := t.TempDir()
 	cursor := filepath.Join(root, "cursor")
-	app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), filepath.Join(root, "pi"), cursor)
+	app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), filepath.Join(root, "pi"), cursor, filepath.Join(root, "imp"))
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest("GET", "/cursor", nil))
 	if w.Code != 404 {

@@ -249,7 +249,7 @@ func buildAnalysis(rows []conversationRow, chat *Chat, v *CostView, agent string
 				best, bestCost = c, cost
 			}
 		}
-		a.Top = append(a.Top, TopRow{Anchor: r.Anchor, Label: rowLabel(r), Color: categories[best].Color, Category: categories[best].Name, Cost: *r.Price})
+		a.Top = append(a.Top, TopRow{Anchor: r.Anchor, Label: rowLabel(r, agent), Color: categories[best].Color, Category: categories[best].Name, Cost: *r.Price})
 	}
 	sort.SliceStable(a.Top, func(i, j int) bool { return a.Top[i].Cost.Total > a.Top[j].Cost.Total })
 	if len(a.Top) > 15 {

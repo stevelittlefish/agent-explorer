@@ -1,6 +1,6 @@
 # Agent Explorer
 
-A small, read-only web browser and exporter for local Codex, Claude Code, pi, and Cursor chats.
+A small, read-only web browser and exporter for local Codex, Claude Code, pi, Cursor, and imp chats.
 Go standard library, server-rendered HTML, CSS, and a little plain JavaScript. No
 external dependencies, database, frontend build step, or API keys.
 
@@ -13,10 +13,11 @@ website. Choose **an agent → a project → a conversation**, revisit the work,
 export a chat to keep or share. It reads your files without modifying them or
 sending them to a service.
 
-- Supports **Codex, Claude Code, pi, and Cursor**; missing agent folders stay out of the UI.
-- Chat headers show recorded token usage and/or USD cost when available, including in HTML exports. Codex uses cumulative token totals; Claude Code uses assistant usage and the latest cost snapshot; pi sums assistant usage and costs. Repeated message IDs are counted once. Values reflect the available records, may be incomplete, and are not a subscription bill. Chat lists show the recorded cost where a session has one.
+- Supports **Codex, Claude Code, pi, Cursor, and imp**; missing agent folders stay out of the UI.
+- Chat headers show recorded token usage and/or USD cost when available, including in HTML exports. Codex uses cumulative token totals; Claude Code uses assistant usage and the latest cost snapshot; pi and imp sum assistant usage and costs. Repeated message IDs are counted once. Values reflect the available records, may be incomplete, and are not a subscription bill. Chat lists show the recorded cost where a session has one.
 - **Claude Code cost analysis:** every row, tool-call group and prompt-cache rebuild gets an estimated cost, split into what it cost when made and what later calls paid to re-read it. Sessions are priced at current API list prices as a chosen model (Opus 5.5 by default; change it with **Price as**), so old sessions show what the same workflow would cost today. The header compares the estimate with Claude Code's recorded cost and warns when they disagree. A **Cost analysis** page charts context size and cost per API call, ranks the costliest rows, and breaks the total down by kind (user messages, responses, tools, MCP, skills, system prompt, cache rebuilds), with its own standalone HTML export.
 - **Codex cost analysis:** the same per-row estimates, rebuild rows and analysis page for Codex sessions, priced at OpenAI API list prices (GPT-6.1 Sol by default). Codex records no cost of its own, so there is nothing to compare against; prompt cache misses show as rebuild rows because the context is sent again uncached. Agents started with `spawn_agent` run as separate sessions and are not included. Prices live in [`prices.go`](prices.go); to refresh them, ask Claude to "update the prices".
+- **imp cost analysis:** the same per-row estimates, rebuild rows and analysis page for imp sessions. imp talks to many providers, so a session can be priced as any Claude or OpenAI model in the table (Opus 5.5 by default). Each provider's own usage accounting is normalised (OpenAI-compatible chat APIs count cached tokens inside input). Cache rebuild rows appear only for models whose provider has reported prompt caching earlier in the session, so local models without a cache don't show a rebuild on every call; when nothing in a session was cached, the estimate says so. imp records no system prompt, so its size is estimated from the first call, and the calls that write compaction summaries are not recorded. Recorded costs use the prices configured in imp, and OpenRouter model IDs such as `anthropic/claude-sonnet-4.6` are matched to the price table.
 - **No Cursor cost analysis:** Cursor keeps no usable token data locally, so there is nothing to price. Its agent transcripts record no tokens or model; its `state.vscdb` database has per-message `tokenCount` fields that are always zero, an empty `usageData`, the model on only some chats, and at most a snapshot of current context size. Estimating from transcript text would miss the system prompt, tool definitions, attached context and caching, so it would be too far off to be useful. Real per-request usage exists only in Cursor's online usage dashboard.
 - Groups consecutive tool calls behind one expandable line.
 - Uses a compact dark interface: blue for you, green for the agent.
@@ -93,13 +94,14 @@ Default data locations:
 - Claude Code: `~/.claude/projects`, including nested subagent transcripts.
 - pi: `~/.pi/agent/sessions`.
 - Cursor: `~/.cursor/projects/*/agent-transcripts`, including nested sessions and subagents.
+- imp: `~/.imp/sessions`. Sessions kept by the `impd` daemon live in its SQLite database and are not shown.
 
 `CODEX_HOME`, `CLAUDE_CONFIG_DIR`, `PI_CODING_AGENT_DIR`, and `CURSOR_HOME` override the default
-agent data directories.
+agent data directories (imp has no such variable; use `-imp-dir`).
 You can also specify them explicitly:
 
 ```sh
-go run . -addr 127.0.0.1:8484 -codex-dir /path/to/.codex -claude-dir /path/to/.claude -pi-dir /path/to/.pi/agent -cursor-dir /path/to/.cursor
+go run . -addr 127.0.0.1:8484 -codex-dir /path/to/.codex -claude-dir /path/to/.claude -pi-dir /path/to/.pi/agent -cursor-dir /path/to/.cursor -imp-dir /path/to/.imp
 ```
 
 The server binds to loopback by default. It has no authentication; use it locally.
@@ -133,7 +135,7 @@ are labelled **Steering**. Injected context is excluded using message metadata
 when available; logs without turn boundaries remain unlabelled. Claude Code
 messages explicitly recorded with `promptSource: "queued"` are labelled **Queued**.
 These provider-specific labels appear in the reader and HTML/text exports; original
-JSONL stays unchanged. Cursor and pi messages have no such labels.
+JSONL stays unchanged. Cursor, pi and imp messages have no such labels.
 
 Images appear as attachment placeholders; original attachment records remain in
 JSONL exports. Provider bookkeeping records and encrypted reasoning are omitted
@@ -143,6 +145,11 @@ are also supported. pi supports named sessions, messages, thinking, tool calls a
 results, shell executions, and saved compaction/branch summaries. pi entries are
 shown in file order, including saved branches; original tree metadata remains in
 the JSONL export.
+
+imp sessions are branchable trees like pi's; entries are shown in file order, including
+abandoned branches, tool errors, failed provider calls and compaction summaries. imp
+records no working directory, only a folder name made by turning every `/` into `-`, so
+projects are matched back to folders that still exist and otherwise keep that name.
 
 Cursor reads local JSONL agent transcripts, including messages and recorded tool
 calls. User prompt wrappers are removed in readable views; original JSONL exports

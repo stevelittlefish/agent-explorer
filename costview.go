@@ -11,25 +11,30 @@ import (
 // Pricing prices a session as if every main-model call ran on Main and every
 // background (Haiku) call on Small. The aim is to judge a workflow at today's
 // prices, so older sessions are deliberately repriced rather than priced as run.
-// Codex has no background model, so Small is empty there.
+// Codex and imp have no background model, so Small is empty there. imp talks
+// to many providers, so its sessions can be priced as either vendor's models.
 type Pricing struct {
 	Main, Small Price
 	Table       []Price // the models this agent's sessions can be priced as
+	Agent       string
 }
 
 func pricingFor(agent, model string) Pricing {
 	table, fallback := priceTable, defaultPriceModel
-	if agent == "codex" {
+	switch agent {
+	case "codex":
 		table, fallback = codexPriceTable, defaultCodexPriceModel
+	case "imp":
+		table = append(append([]Price{}, priceTable...), codexPriceTable...)
 	}
-	p := Pricing{Table: table}
+	p := Pricing{Table: table, Agent: agent}
 	for _, id := range []string{model, fallback} {
 		if pr, ok := priceFor(id); ok && inTable(table, pr.Model) {
 			p.Main = pr
 			break
 		}
 	}
-	if agent != "codex" {
+	if agent == "claude" {
 		p.Small, _ = priceFor(smallPriceModel)
 	}
 	return p
@@ -171,7 +176,7 @@ func priceRows(rows []conversationRow, chat *Chat, p Pricing) *CostView {
 			v.RebuildCost += rc.Total
 		}
 		maxRow = math.Max(maxRow, rc.Total)
-		v.Costliest = append(v.Costliest, costliest{rows[i].Anchor, rowLabel(rows[i]), rc})
+		v.Costliest = append(v.Costliest, costliest{rows[i].Anchor, rowLabel(rows[i], p.Agent), rc})
 	}
 	for i := range rows {
 		if rows[i].Price != nil && maxRow > 0 {
@@ -189,7 +194,7 @@ func priceRows(rows []conversationRow, chat *Chat, p Pricing) *CostView {
 	return v
 }
 
-func rowLabel(r conversationRow) string {
+func rowLabel(r conversationRow, agent string) string {
 	switch {
 	case r.Tools != nil:
 		return r.Label
@@ -199,6 +204,12 @@ func rowLabel(r conversationRow) string {
 		return strings.ToUpper(r.Role[:1]) + r.Role[1:]
 	case r.Role == "user":
 		return "You: " + short(r.Text)
+	}
+	switch agent {
+	case "codex":
+		return "Codex: " + short(r.Text)
+	case "imp":
+		return "imp: " + short(r.Text)
 	}
 	return "Claude: " + short(r.Text)
 }
@@ -278,6 +289,8 @@ func (v *CostView) check(chat *Chat) {
 				msg += fmt.Sprintf(" because it prices this session as %s; it ran on %s.", v.Main.Name, strings.Join(names, ", "))
 			case tableWrong:
 				msg += "; see the price warning above."
+			case v.Agent == "imp":
+				msg += ". imp records cost at the prices configured for each provider, and leaves out the calls that write compaction summaries."
 			default:
 				msg += ". Claude Code also makes background calls that the transcript doesn't record"
 				var seen []string
@@ -311,7 +324,19 @@ func (v *CostView) check(chat *Chat) {
 			v.Warnings = append(v.Warnings, fmt.Sprintf("This session ran on %s, which isn't in the price table. Ask Claude to update the prices.", model))
 		}
 	}
-	if v.Small.Model == "" {
+	if v.Agent == "imp" {
+		cached := false
+		for _, c := range sc.PerCall {
+			cached = cached || c.Use[roleMain][bRead]+c.Use[roleMain][bWrite5m]+c.Use[roleMain][bWrite1h] > 0
+		}
+		if !cached {
+			v.Notes = append(v.Notes, "The providers in this session reported no prompt caching, so all context is priced as uncached input on every call; with caching it would cost less.")
+		}
+		if sc.Compactions > 0 {
+			v.Notes = append(v.Notes, fmt.Sprintf("imp doesn't record the calls that wrote this session's %d %s, so they are not included.", sc.Compactions, plural(sc.Compactions, "compaction summary")))
+		}
+	}
+	if inTable(codexPriceTable, v.Main.Model) {
 		long := 0
 		for _, c := range sc.PerCall {
 			if c.Use[roleMain][bInput]+c.Use[roleMain][bRead]+c.Use[roleMain][bWrite5m]+c.Use[roleMain][bWrite1h] > longContext {

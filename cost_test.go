@@ -72,7 +72,7 @@ func TestCostAttributionAddsUp(t *testing.T) {
 	for _, r := range rows {
 		if r.Price != nil {
 			sum += r.Price.Total
-			byLabel[rowLabel(r)] = *r.Price
+			byLabel[rowLabel(r, "claude")] = *r.Price
 		}
 	}
 	if !near(sum, sessionTotal) {
@@ -181,7 +181,7 @@ func TestCostsOnPagesAndExport(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "claude", "projects", "project", "chat.jsonl")
 	writeLines(t, path, costSession(fmt.Sprintf(`{"type":"cost-state","totalCostUSD":%v}`, sessionTotal)))
-	app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), filepath.Join(root, "pi"), filepath.Join(root, "cursor"))
+	app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), filepath.Join(root, "pi"), filepath.Join(root, "cursor"), filepath.Join(root, "imp"))
 	project := "/claude/projects/" + key("/project")
 	base := project + "/chats/" + key(path)
 	get := func(url string) string {
@@ -257,7 +257,7 @@ func TestAnalysisCategoriesAndPage(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "claude", "projects", "project", "chat.jsonl")
 	writeLines(t, path, lines)
-	app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), filepath.Join(root, "pi"), filepath.Join(root, "cursor"))
+	app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), filepath.Join(root, "pi"), filepath.Join(root, "cursor"), filepath.Join(root, "imp"))
 	base := "/claude/projects/" + key("/project") + "/chats/" + key(path)
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest("GET", base, nil))

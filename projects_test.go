@@ -11,7 +11,7 @@ import (
 
 func TestProjectSorting(t *testing.T) {
 	root := t.TempDir()
-	app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), filepath.Join(root, "pi"), filepath.Join(root, "cursor"))
+	app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), filepath.Join(root, "pi"), filepath.Join(root, "cursor"), filepath.Join(root, "imp"))
 	// Full-path order differs from displayed-name order. Alpha's old chat must
 	// not override its newer activity when the project summary is assembled.
 	for i, v := range []struct {

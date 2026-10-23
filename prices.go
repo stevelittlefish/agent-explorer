@@ -2,7 +2,7 @@ package main
 
 import "strings"
 
-// Prices for estimating Claude Code and Codex session costs, in USD per
+// Prices for estimating Claude Code, Codex and imp session costs, in USD per
 // million tokens.
 //
 // HOW TO UPDATE THE PRICES ("Claude - update the prices!")
@@ -83,9 +83,16 @@ var codexPriceTable = []Price{
 }
 
 // priceFor finds a model's prices. Recorded IDs may carry a date suffix
-// (claude-haiku-4-5-20251001); anything else must match exactly, so an unknown
-// claude-opus-5-6 is reported as missing rather than priced as Opus 5.
+// (claude-haiku-4-5-20251001) or, from OpenRouter, a vendor prefix and dotted
+// version (anthropic/claude-opus-4.7); anything else must match exactly, so an
+// unknown claude-opus-5-6 is reported as missing rather than priced as Opus 5.
 func priceFor(model string) (Price, bool) {
+	if i := strings.LastIndex(model, "/"); i >= 0 {
+		model = model[i+1:]
+		if strings.HasPrefix(model, "claude-") {
+			model = strings.ReplaceAll(model, ".", "-")
+		}
+	}
 	if i := strings.LastIndex(model, "-"); i > 0 && len(model)-i-1 == 8 && strings.Trim(model[i+1:], "0123456789") == "" {
 		model = model[:i]
 	}

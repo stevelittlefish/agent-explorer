@@ -92,7 +92,7 @@ func (s *usageReader) read(agent string, r map[string]any) {
 		m := obj(r, "message")
 		u := tokens(obj(m, "usage"), "total_tokens", "input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
 		s.message(str(m, "id"), u)
-	case "pi":
+	case "pi", "imp":
 		if str(r, "type") != "message" {
 			return
 		}

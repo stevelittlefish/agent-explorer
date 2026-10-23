@@ -87,7 +87,7 @@ func TestMessageKindNavigationAndExports(t *testing.T) {
 	for _, agent := range []string{"codex", "claude"} {
 		t.Run(agent, func(t *testing.T) {
 			root := t.TempDir()
-			app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), filepath.Join(root, "pi"), filepath.Join(root, "cursor"))
+			app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), filepath.Join(root, "pi"), filepath.Join(root, "cursor"), filepath.Join(root, "imp"))
 			path := filepath.Join(app.store.Roots[agent][0], "chat.jsonl")
 			kind := "Queued"
 			if agent == "codex" {

@@ -87,7 +87,7 @@ func TestCodexCostPages(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "codex", "sessions", "chat.jsonl")
 	writeLines(t, path, codexSession(true))
-	app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), filepath.Join(root, "pi"), filepath.Join(root, "cursor"))
+	app := newApp(filepath.Join(root, "codex"), filepath.Join(root, "claude"), filepath.Join(root, "pi"), filepath.Join(root, "cursor"), filepath.Join(root, "imp"))
 	base := "/codex/projects/" + key("/work") + "/chats/" + key(path)
 	for _, url := range []string{base, base + "/analysis?price=gpt-6-astra"} {
 		w := httptest.NewRecorder()

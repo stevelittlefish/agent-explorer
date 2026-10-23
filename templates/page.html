@@ -64,7 +64,7 @@
 {{if .Projects}}<nav class="project-sort" aria-label="Sort projects"><span>Sort projects:</span><a href="/{{.Agent}}?sort=recent" {{if eq .ProjectSort "recent"}}aria-current="true"{{end}}>Newest activity</a><a href="/{{.Agent}}?sort=oldest" {{if eq .ProjectSort "oldest"}}aria-current="true"{{end}}>Oldest activity</a><a href="/{{.Agent}}?sort=name" {{if eq .ProjectSort "name"}}aria-current="true"{{end}}>Name A–Z</a><a href="/{{.Agent}}?sort=name-desc" {{if eq .ProjectSort "name-desc"}}aria-current="true"{{end}}>Name Z–A</a></nav><label class="filter" hidden><span class="sr-only">Filter projects</span><input type="search" placeholder="Search project folders…" data-filter></label><ol class="listing">{{range .Projects}}<li data-item><a href="/{{$.Agent}}/projects/{{.ID}}"><div><strong>{{base .Name}}</strong><span>{{.Name}}</span><span>{{.Count}} chats · Last activity {{date .Updated}}</span></div><span class="row-arrow" aria-hidden="true">↗</span></a></li>{{end}}</ol><p id="no-results" role="status" hidden>No matching projects.</p>{{else}}<p class="empty">No chats found. Start a chat in {{.AgentName}}, or set its data directory when starting this server.</p>{{end}}
 {{else}}
 <h1>Agents</h1>
-{{if .Agents}}<div class="agent-cards">{{range .Agents}}<a class="agent-card" href="/{{.ID}}"><h2>{{.Name}}<span class="agent-symbol" aria-hidden="true">{{.Symbol}}</span></h2><span class="card-action">Browse projects</span></a>{{end}}</div>{{else}}<p class="empty">No agent data folders found. Start a chat with Codex, Claude Code, pi, or Cursor, or set a data directory when starting this server.</p>{{end}}
+{{if .Agents}}<div class="agent-cards">{{range .Agents}}<a class="agent-card" href="/{{.ID}}"><h2>{{.Name}}<span class="agent-symbol" aria-hidden="true">{{.Symbol}}</span></h2><span class="card-action">Browse projects</span></a>{{end}}</div>{{else}}<p class="empty">No agent data folders found. Start a chat with Codex, Claude Code, pi, Cursor, or imp, or set a data directory when starting this server.</p>{{end}}
 <p class="archive-note">Read a chat. Export HTML, text, or the original JSONL.</p>
 {{end}}
 </main></div>
@@ -85,6 +85,12 @@
 <dt>System prompt &amp; tools</dt><dd>Codex's instructions, tool definitions, permissions, AGENTS.md and environment context, re-read by every call.</dd>
 <dt>Cache rebuilds</dt><dd>Context sent again uncached because the prompt cache missed: it expired, or the request landed where it wasn't cached.</dd>
 <dt>Other</dt><dd>Tokens no visible row could take, such as calls that only produced hidden reasoning.</dd>
+</dl>{{else if eq .Agent "imp"}}<dl>
+<dt>Tool calls &amp; results</dt><dd>The read, write, edit and bash tools and their output.</dd>
+<dt>Responses &amp; reasoning</dt><dd>Replies and the thinking behind them.</dd>
+<dt>System prompt &amp; tools</dt><dd>imp's system prompt and tool definitions, re-read by every call. imp doesn't record them, so their size is estimated from the first call.</dd>
+<dt>Cache rebuilds</dt><dd>Context written or sent to the cache again because it expired, the tools changed, or the request missed it. Only models whose provider reports prompt caching can show these.</dd>
+<dt>Other</dt><dd>Tokens no visible row could take, such as calls that only produced hidden thinking.</dd>
 </dl>{{else}}<dl>
 <dt>Tool calls &amp; results</dt><dd>Built-in tools, including subagents started by the Agent tool.</dd>
 <dt>MCP</dt><dd>Calls to <code>mcp__</code> tools, ToolSearch loading them, and the prompt cache rebuilds that loading causes.</dd>
@@ -94,7 +100,7 @@
 <dt>Other</dt><dd>Tokens no visible row could take, such as calls that only produced hidden thinking.</dd>
 </dl>{{end}}</details></section>
 <section class="chart-card" aria-labelledby="types-title">{{template "donut" $a.Types}}
-<p class="chart-desc donut-note">Output is priced highest per token, but cache reads are re-paid on every call, so they often add up to more.</p>{{if ne .Agent "codex"}}<p class="chart-desc donut-note">Cache write includes the input tokens: new context is written to the cache as it is sent, so it is billed at the cache write rate, not as uncached input.</p>{{end}}</section>
+<p class="chart-desc donut-note">Output is priced highest per token, but cache reads are re-paid on every call, so they often add up to more.</p>{{if eq .Agent "claude"}}<p class="chart-desc donut-note">Cache write includes the input tokens: new context is written to the cache as it is sent, so it is billed at the cache write rate, not as uncached input.</p>{{end}}</section>
 <section class="chart-card chart-wide" aria-labelledby="top-title"><h2 id="top-title">Costliest rows</h2><p class="chart-desc">Total, then (when made / re-read later). Colour shows the kind.</p>
 <ol class="top-rows">{{range $a.Top}}<li title="{{.Category}}: {{.Cost.Detail}}"><span class="top-label">{{if $.Export}}{{.Label}}{{else}}<a href="{{$.ChatURL}}?price={{$c.Main.Model}}#{{.Anchor}}">{{.Label}}</a>{{end}}</span><span class="top-bar"><span style="width: {{.Width}}%; background: {{.Color}}"></span></span><span class="top-value">{{.Cost.Label}} <span class="cost-split">({{.Cost.Made}}/{{.Cost.Repeated}})</span></span></li>{{end}}</ol></section>
 </div>
