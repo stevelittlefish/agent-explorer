@@ -1,8 +1,9 @@
 # Agent Explorer
 
 A small, read-only web browser and exporter for local Codex, Claude Code, pi, Cursor, and imp chats.
-Go standard library, server-rendered HTML, CSS, and a little plain JavaScript. No
-external dependencies, database, frontend build step, or API keys.
+Go standard library, server-rendered HTML, CSS, and a little plain JavaScript. One
+dependency — a pure-Go SQLite driver, for reading impd's sessions — and no database
+of its own, frontend build step, or API keys.
 
 <img src="assets/screenshot.png" alt="Agent Explorer showing a conversation with the Phosphor dark interface" width="640">
 
@@ -66,14 +67,14 @@ Mac users are welcome to try building from source; bring your own ceremonial tur
 
 **Just 1 easy step. That's it. No other setup at all.**
 
-With Go 1.23 or newer installed, run:
+With Go 1.25 or newer installed, run:
 
 ```sh
 ./run.sh
 ```
 
-That is the *entire* process — no config files to edit, no dependencies to
-install (there are none beyond the Go standard library), no database to set up,
+That is the *entire* process — no config files to edit, nothing to install by
+hand (Go fetches the one module, a pure-Go SQLite driver, by itself), no database to set up,
 no environment variables to export, no build step to run first. One command and
 the server is up.
 
@@ -98,14 +99,17 @@ Default data locations:
 - Claude Code: `~/.claude/projects`, including nested subagent transcripts.
 - pi: `~/.pi/agent/sessions`.
 - Cursor: `~/.cursor/projects/*/agent-transcripts`, including nested sessions and subagents.
-- imp: `~/.imp/sessions`. Sessions kept by the `impd` daemon live in its SQLite database and are not shown.
+- imp: `~/.imp/sessions`, plus the `impd` daemon's sessions in `~/.imp/impd/sessions.db`
+  (set another database with `-impd-db`). Daemon sessions are listed with the terminal
+  ones under their recorded working directory, and use the titles impd gave them. The
+  database is opened read-only; a JSONL export writes its entries as imp's JSONL lines.
 
 `CODEX_HOME`, `CLAUDE_CONFIG_DIR`, `PI_CODING_AGENT_DIR`, and `CURSOR_HOME` override the default
 agent data directories (imp has no such variable; use `-imp-dir`).
 You can also specify them explicitly:
 
 ```sh
-go run . -addr 127.0.0.1:8484 -codex-dir /path/to/.codex -claude-dir /path/to/.claude -pi-dir /path/to/.pi/agent -cursor-dir /path/to/.cursor -imp-dir /path/to/.imp
+go run . -addr 127.0.0.1:8484 -codex-dir /path/to/.codex -claude-dir /path/to/.claude -pi-dir /path/to/.pi/agent -cursor-dir /path/to/.cursor -imp-dir /path/to/.imp -impd-db /path/to/sessions.db
 ```
 
 The server binds to loopback by default. It has no authentication; use it locally.

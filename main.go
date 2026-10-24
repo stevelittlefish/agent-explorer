@@ -68,6 +68,7 @@ func main() {
 	}
 	cursor := flag.String("cursor-dir", cursorDefault, "Cursor data directory")
 	imp := flag.String("imp-dir", filepath.Join(home, ".imp"), "imp data directory")
+	impd := flag.String("impd-db", "", "impd session database (default <imp-dir>/impd/sessions.db)")
 	addr := flag.String("addr", "0.0.0.0:8484", "HTTP listen address")
 	codex := flag.String("codex-dir", codexDefault, "Codex data directory")
 	claude := flag.String("claude-dir", claudeDefault, "Claude Code data directory")
@@ -75,6 +76,9 @@ func main() {
 	piSessions := flag.String("pi-sessions-dir", os.Getenv("PI_CODING_AGENT_SESSION_DIR"), "Optional pi sessions directory override")
 	flag.Parse()
 	app := newApp(*codex, *claude, *pi, *cursor, *imp)
+	if *impd != "" {
+		app.store.Impd = *impd
+	}
 	if *piSessions != "" {
 		app.store.Roots["pi"] = []string{*piSessions}
 	}
@@ -90,7 +94,7 @@ func newApp(codex, claude, pi, cursor, imp string) *App {
 			"pi":     {filepath.Join(pi, "sessions")},
 			"cursor": {filepath.Join(cursor, "projects")},
 			"imp":    {filepath.Join(imp, "sessions")},
-		}},
+		}, Impd: filepath.Join(imp, "impd", "sessions.db")},
 		agents: []Agent{{"codex", "Codex", ">_", codex}, {"claude", "Claude Code", "✳", claude}, {"pi", "pi", "π", pi}, {"cursor", "Cursor", "↗", cursor}, {"imp", "imp", "ϟ", imp}},
 	}
 }
@@ -199,7 +203,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if c.ID != parts[4] {
 			continue
 		}
-		chat, err := readChat(c.Path, p.Agent, true)
+		chat, err := a.store.Read(c, p.Agent)
 		if err != nil {
 			http.Error(w, "Could not read this chat.", 500)
 			return
@@ -251,7 +255,17 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			switch format {
 			case "jsonl":
 				w.Header().Set("Content-Type", "application/x-ndjson")
-				http.ServeFile(w, r, chat.Path)
+				if chat.Session == "" {
+					http.ServeFile(w, r, chat.Path)
+					break
+				}
+				b, err := a.store.Original(chat)
+				if err != nil {
+					log.Printf("read impd session %s: %v", chat.Session, err)
+					http.Error(w, "Could not read this chat.", 500)
+					return
+				}
+				w.Write(b)
 			case "txt":
 				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 				fmt.Fprintf(w, "%s\n%s · %s\n\n", chat.Title, p.AgentName, chat.Project)

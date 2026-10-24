@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -27,6 +28,7 @@ type Message struct {
 }
 type Chat struct {
 	ID, ProjectID, Project, Title, Path string
+	Session                             string // an impd session in the database at Path
 	Updated                             time.Time
 	Messages                            []Message
 	Warnings                            int
@@ -38,12 +40,16 @@ type Chat struct {
 type cachedChat struct {
 	size     int64
 	modified time.Time
+	title    string // impd only: a session can be renamed without new entries
 	chat     Chat
 }
 type Store struct {
 	Roots map[string][]string
+	Impd  string // the impd daemon's SQLite database, listed with imp
 	mu    sync.Mutex
 	cache map[string]cachedChat
+	dbMu  sync.Mutex
+	impd  *sql.DB
 }
 
 func key(s string) string { h := sha256.Sum256([]byte(s)); return hex.EncodeToString(h[:16]) }
@@ -90,7 +96,7 @@ func (s *Store) List(agent string) ([]Chat, error) {
 					return fmt.Errorf("read %s: %w", path, err)
 				}
 				chat.Updated = info.ModTime()
-				cached = cachedChat{info.Size(), info.ModTime(), chat}
+				cached = cachedChat{size: info.Size(), modified: info.ModTime(), chat: chat}
 				s.cache[path] = cached
 			}
 			seen[path] = true
@@ -101,10 +107,17 @@ func (s *Store) List(agent string) ([]Chat, error) {
 			return nil, err
 		}
 	}
+	if agent == "imp" {
+		s.listImpd(&chats, seen)
+	}
 	// Drop cached chats whose files have disappeared from this agent's roots,
 	// so the cache does not grow without bound as sessions are deleted.
 	for path := range s.cache {
 		if seen[path] {
+			continue
+		}
+		if agent == "imp" && s.Impd != "" && strings.HasPrefix(path, impdKey(s.Impd, "")) {
+			delete(s.cache, path)
 			continue
 		}
 		for _, root := range s.Roots[agent] {
@@ -146,7 +159,13 @@ func readChat(path, agent string, full bool) (Chat, error) {
 		return c, err
 	}
 	defer f.Close()
-	reader := bufio.NewReader(f)
+	return readRecords(c, f, agent, full)
+}
+
+// readRecords reads a transcript of JSON lines into c.
+func readRecords(c Chat, src io.Reader, agent string, full bool) (Chat, error) {
+	path := c.Path
+	reader := bufio.NewReader(src)
 	var events []Message
 	hasResponses := false
 	titleFound := false
